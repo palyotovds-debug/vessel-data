@@ -32,10 +32,14 @@ th.etah{width:115px;min-width:105px;padding:7px 4px 5px;font-size:9px;font-weigh
 th.dh{width:60px;min-width:60px;padding:7px 3px 5px;font-size:9px;font-weight:700;text-align:center;color:#4a5568;background:#f7f8fc;line-height:1.3;vertical-align:bottom;word-break:break-word}
 th.xh{width:32px;min-width:32px;background:#f7f8fc;border-left:2px solid #e2e6f0}
 td.vc{position:sticky;left:0;z-index:2;border-right:2px solid #e2e6f0;width:155px;min-width:140px;padding:0;vertical-align:top}
-td.etac{width:115px;min-width:105px;padding:3px 4px;vertical-align:middle}
-.etaw{display:flex;flex-direction:column;gap:2px;padding:1px 0}
-.eta-date,.eta-time{font-size:10px;border:1px solid #e2e6f0;border-radius:4px;padding:2px 3px;background:#fff;width:100%;outline:none;color:#1d2939}
-.eta-date:focus,.eta-time:focus{border-color:#3b82f6}
+td.etac{width:115px;min-width:105px;padding:0;vertical-align:middle}
+.eta-cell{min-height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 6px;cursor:pointer;gap:1px}
+.eta-cell:hover .eta-disp{opacity:.75}
+.eta-disp{font-size:10px;color:#1d2939;font-weight:600;line-height:1.4;text-align:center;pointer-events:none}
+.eta-time-val{font-size:10px;color:#64748b;font-weight:400;text-align:center;pointer-events:none}
+.eta-ph{color:#c8cdd8;font-size:12px;pointer-events:none}
+.eta-inputs{display:flex;flex-direction:column;gap:3px;width:100%;padding:3px 4px}
+.eta-date,.eta-time{font-size:10px;border:1.5px solid #3b82f6;border-radius:4px;padding:2px 4px;background:#fff;width:100%;outline:none;color:#1d2939}
 .vw{position:relative}
 .vm{display:flex;align-items:flex-start;min-height:36px;padding:4px 22px 4px 9px;cursor:pointer}
 .vm:hover{filter:brightness(.96)}
@@ -132,7 +136,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 <div class="tst" id="tst"></div>
 
 <script>
-var DOCS=['Notice','ДОНОС','ANNEX','Harbor Master','СКП','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
+var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
 var KEY='vd1';
 var JBURL='https://api.jsonbin.io/v3/b/6a0b8b67ee5a733b12df2777';
 var JBKEY='$2a$10$oLuUpIsaitxUZlA4zrzNuOJ2V6toW0lKTcV38tN5GBVIJaDxlS3Xa';
@@ -149,6 +153,7 @@ var FMAP_COL2={'груз':true,'кол-во груза':true,'причал':true
 var CF=[{k:'arr',l:'ARR',dt:1},{k:'dep',l:'DEP',dt:1},{k:'berth',l:'Berth →',tx:1},{k:'cargo',l:'Cargo'},{k:'cargoqty',l:'Cargo qty'},{k:'type',l:'Тип судна'},{k:'flag',l:'Флаг'},{k:'class',l:'Класс'},{k:'portreg',l:'Порт регистрации'},{k:'imo',l:'IMO →'},{k:'cs',l:'Call Sign'},{k:'year',l:'Built'},{k:'dw',l:'DW'},{k:'loa',l:'LOA'},{k:'lbp',l:'LBP'},{k:'boa',l:'BOA'},{k:'dmd',l:'Dmd'},{k:'tsum',l:'T sum'},{k:'owner',l:'Судовладелец',f:1},{k:'holds',l:'Трюмов/крыш.'},{k:'volume',l:'Объём'},{k:'mt',l:'MarineTraffic',f:1,lnk:1}];
 var V=[],S={},EX={},COLLAPSED={};
 var cloudQueue=null,cloudRetry=0;
+var etaEditRow=-1;
 
 var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/></svg>';
@@ -166,8 +171,7 @@ function fmtD(d){if(!d)return'';var p=d.split('-');return p.length===3?p[2]+'.'+
 
 function isAtSulina(v){
   if(!v.etaswa)return false;
-  var dt=new Date(v.etaswa+'T'+(v.etaswatime||'00:00'));
-  return dt<=new Date();
+  return new Date(v.etaswa+'T'+(v.etaswatime||'00:00'))<=new Date();
 }
 
 function getSt(v){
@@ -280,7 +284,7 @@ function doLoadInitial(){
   {name:"RAFINA",imo:"9159737",type:"BULK CARRIER",flag:"TOGO",class:"DBS",portreg:"LOME",cs:"5VJI3",dw:"28747",grt:"17377",nrt:"10133",loa:"176.62",lbp:"170.14",boa:"26.00",dmd:"13.60",tsum:"9.61",owner:"AMATHUS MARINE LTD",holds:"5",volume:"39036",year:"1997",arr:"2026-05-15",dep:"2026-05-19",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
   {name:"DR SARKAS",imo:"9222558",type:"BULK CARRIER",flag:"BARBADOS",class:"NK",portreg:"BRIDGETOWN",cs:"8PYO8",dw:"28290",grt:"17859",nrt:"9828",loa:"171.93",lbp:"165.28",boa:"27.00",dmd:"13.60",tsum:"9.55",owner:"SARKAS SHIPHOLDING LTD",holds:"5",volume:"38232.05",year:"2000",arr:"2026-05-17",dep:"2026-05-19",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"19.05.2026",mmsi:""}
   ].map(function(v){return Object.assign(newV(),v);});
-  S={"LUGANO|||19.05.2026|||Notice":true,"LUGANO|||19.05.2026|||ДОНОС":true,"LUGANO|||19.05.2026|||ANNEX":true,"LUGANO|||19.05.2026|||Harbor Master":true,"LUGANO|||19.05.2026|||СКП":true,"LUGANO|||19.05.2026|||ISPS":true,"LUGANO|||19.05.2026|||Port Clearance":true,"LUGANO|||19.05.2026|||DATA FOR DOCS":true,"LUGANO|||19.05.2026|||Pre-stowage plan":true,"LUGANO|||19.05.2026|||Terminal Inquiry":true,"LUGANO|||19.05.2026|||XL":true,"DR SARKAS|||19.05.2026|||Notice":true,"DR SARKAS|||19.05.2026|||ДОНОС":true,"DR SARKAS|||19.05.2026|||ANNEX":true,"DR SARKAS|||19.05.2026|||Harbor Master":true,"DR SARKAS|||19.05.2026|||СКП":true,"DR SARKAS|||19.05.2026|||ISPS":true,"DR SARKAS|||19.05.2026|||Port Clearance":true,"DR SARKAS|||19.05.2026|||DATA FOR DOCS":true,"DR SARKAS|||19.05.2026|||Pre-stowage plan":true,"DR SARKAS|||19.05.2026|||Terminal Inquiry":true,"DR SARKAS|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||Terminal Inquiry":true,"SEARENA|||19.05.2026|||Pre-stowage plan":true,"SEARENA|||19.05.2026|||DATA FOR DOCS":true,"SEARENA|||19.05.2026|||Port Clearance":true,"SEARENA|||19.05.2026|||ISPS":true,"SEARENA|||19.05.2026|||СКП":true,"SEARENA|||19.05.2026|||Harbor Master":true,"SEARENA|||19.05.2026|||ANNEX":true,"SEARENA|||19.05.2026|||ДОНОС":true,"SEARENA|||19.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||ДОНОС":true,"GOLDEN EMAN|||20.05.2026|||Notice":true,"GOLDEN EMAN|||20.05.2026|||ДОНОС":true,"GOLDEN EMAN|||20.05.2026|||ANNEX":true,"GOLDEN EMAN|||20.05.2026|||Harbor Master":true,"GOLDEN EMAN|||20.05.2026|||СКП":true,"GOLDEN EMAN|||20.05.2026|||ISPS":true,"GOLDEN EMAN|||20.05.2026|||Port Clearance":true,"GOLDEN EMAN|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN EMAN|||20.05.2026|||Pre-stowage plan":true,"GOLDEN EMAN|||20.05.2026|||Terminal Inquiry":true,"GOLDEN EMAN|||20.05.2026|||XL":true,"RAFINA|||20.05.2026|||Notice":true,"RAFINA|||20.05.2026|||ДОНОС":true,"RAFINA|||20.05.2026|||ANNEX":true,"RAFINA|||20.05.2026|||Harbor Master":true,"RAFINA|||20.05.2026|||СКП":true,"RAFINA|||20.05.2026|||ISPS":true,"RAFINA|||20.05.2026|||Port Clearance":true,"RAFINA|||20.05.2026|||DATA FOR DOCS":true,"RAFINA|||20.05.2026|||Pre-stowage plan":true,"RAFINA|||20.05.2026|||Terminal Inquiry":true,"RAFINA|||20.05.2026|||XL":true,"CHARLES|||20.05.2026|||Notice":true,"CHARLES|||20.05.2026|||ДОНОС":true,"CHARLES|||20.05.2026|||ANNEX":true,"CHARLES|||20.05.2026|||Harbor Master":true,"CHARLES|||20.05.2026|||СКП":true,"CHARLES|||20.05.2026|||ISPS":true,"CHARLES|||20.05.2026|||Port Clearance":true,"CHARLES|||20.05.2026|||DATA FOR DOCS":true,"CHARLES|||20.05.2026|||Pre-stowage plan":true,"CHARLES|||20.05.2026|||Terminal Inquiry":true,"CHARLES|||20.05.2026|||XL":true,"GOLDEN NOUR|||20.05.2026|||Notice":true,"GOLDEN NOUR|||20.05.2026|||ДОНОС":true,"GOLDEN NOUR|||20.05.2026|||ANNEX":true,"GOLDEN NOUR|||20.05.2026|||Harbor Master":true,"GOLDEN NOUR|||20.05.2026|||СКП":true,"GOLDEN NOUR|||20.05.2026|||ISPS":true,"GOLDEN NOUR|||20.05.2026|||Port Clearance":true,"GOLDEN NOUR|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN NOUR|||20.05.2026|||Pre-stowage plan":true,"GOLDEN NOUR|||20.05.2026|||Terminal Inquiry":true,"GOLDEN NOUR|||20.05.2026|||XL":true,"LADY MONICA|||20.05.2026|||Notice":true,"LADY MONICA|||20.05.2026|||ДОНОС":true,"LADY MONICA|||20.05.2026|||ANNEX":true,"LADY MONICA|||20.05.2026|||Harbor Master":true,"LADY MONICA|||20.05.2026|||СКП":true,"LADY MONICA|||20.05.2026|||ISPS":true,"LADY MONICA|||20.05.2026|||Port Clearance":true,"LADY MONICA|||20.05.2026|||DATA FOR DOCS":true,"LADY MONICA|||20.05.2026|||Pre-stowage plan":true,"LADY MONICA|||20.05.2026|||Terminal Inquiry":true,"LADY MONICA|||20.05.2026|||XL":true,"PELIKAN|||20.05.2026|||Notice":true,"PELIKAN|||20.05.2026|||ДОНОС":true,"PELIKAN|||20.05.2026|||ANNEX":true,"PELIKAN|||20.05.2026|||Harbor Master":true,"PELIKAN|||20.05.2026|||СКП":true,"PELIKAN|||20.05.2026|||ISPS":true,"PELIKAN|||20.05.2026|||Port Clearance":true,"PELIKAN|||20.05.2026|||DATA FOR DOCS":true,"PELIKAN|||20.05.2026|||Pre-stowage plan":true,"PELIKAN|||20.05.2026|||Terminal Inquiry":true,"PELIKAN|||20.05.2026|||XL":true,"PUNKT|||21.05.2026|||Notice":true,"PUNKT|||21.05.2026|||ДОНОС":true,"PUNKT|||21.05.2026|||ANNEX":true,"PUNKT|||21.05.2026|||Harbor Master":true,"PUNKT|||21.05.2026|||СКП":true,"PUNKT|||21.05.2026|||ISPS":true,"PUNKT|||21.05.2026|||Port Clearance":true,"PUNKT|||21.05.2026|||Pre-stowage plan":true,"PUNKT|||21.05.2026|||Terminal Inquiry":true,"PUNKT|||21.05.2026|||XL":true,"EVANGELISTRIA|||21.05.2026|||Notice":true,"EVANGELISTRIA|||21.05.2026|||ДОНОС":true,"A.M.K EVANDER|||20.05.2026|||ANNEX":true,"A.M.K EVANDER|||20.05.2026|||Harbor Master":true};
+  S={"LUGANO|||19.05.2026|||Notice":true,"LUGANO|||19.05.2026|||ЄАІС":true,"LUGANO|||19.05.2026|||ANNEX":true,"LUGANO|||19.05.2026|||Harbor Master":true,"LUGANO|||19.05.2026|||СКО":true,"LUGANO|||19.05.2026|||ISPS":true,"LUGANO|||19.05.2026|||Port Clearance":true,"LUGANO|||19.05.2026|||DATA FOR DOCS":true,"LUGANO|||19.05.2026|||Pre-stowage plan":true,"LUGANO|||19.05.2026|||Terminal Inquiry":true,"LUGANO|||19.05.2026|||XL":true,"DR SARKAS|||19.05.2026|||Notice":true,"DR SARKAS|||19.05.2026|||ЄАІС":true,"DR SARKAS|||19.05.2026|||ANNEX":true,"DR SARKAS|||19.05.2026|||Harbor Master":true,"DR SARKAS|||19.05.2026|||СКО":true,"DR SARKAS|||19.05.2026|||ISPS":true,"DR SARKAS|||19.05.2026|||Port Clearance":true,"DR SARKAS|||19.05.2026|||DATA FOR DOCS":true,"DR SARKAS|||19.05.2026|||Pre-stowage plan":true,"DR SARKAS|||19.05.2026|||Terminal Inquiry":true,"DR SARKAS|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||Terminal Inquiry":true,"SEARENA|||19.05.2026|||Pre-stowage plan":true,"SEARENA|||19.05.2026|||DATA FOR DOCS":true,"SEARENA|||19.05.2026|||Port Clearance":true,"SEARENA|||19.05.2026|||ISPS":true,"SEARENA|||19.05.2026|||СКО":true,"SEARENA|||19.05.2026|||Harbor Master":true,"SEARENA|||19.05.2026|||ANNEX":true,"SEARENA|||19.05.2026|||ЄАІС":true,"SEARENA|||19.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||ЄАІС":true,"GOLDEN EMAN|||20.05.2026|||Notice":true,"GOLDEN EMAN|||20.05.2026|||ЄАІС":true,"GOLDEN EMAN|||20.05.2026|||ANNEX":true,"GOLDEN EMAN|||20.05.2026|||Harbor Master":true,"GOLDEN EMAN|||20.05.2026|||СКО":true,"GOLDEN EMAN|||20.05.2026|||ISPS":true,"GOLDEN EMAN|||20.05.2026|||Port Clearance":true,"GOLDEN EMAN|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN EMAN|||20.05.2026|||Pre-stowage plan":true,"GOLDEN EMAN|||20.05.2026|||Terminal Inquiry":true,"GOLDEN EMAN|||20.05.2026|||XL":true,"RAFINA|||20.05.2026|||Notice":true,"RAFINA|||20.05.2026|||ЄАІС":true,"RAFINA|||20.05.2026|||ANNEX":true,"RAFINA|||20.05.2026|||Harbor Master":true,"RAFINA|||20.05.2026|||СКО":true,"RAFINA|||20.05.2026|||ISPS":true,"RAFINA|||20.05.2026|||Port Clearance":true,"RAFINA|||20.05.2026|||DATA FOR DOCS":true,"RAFINA|||20.05.2026|||Pre-stowage plan":true,"RAFINA|||20.05.2026|||Terminal Inquiry":true,"RAFINA|||20.05.2026|||XL":true,"CHARLES|||20.05.2026|||Notice":true,"CHARLES|||20.05.2026|||ЄАІС":true,"CHARLES|||20.05.2026|||ANNEX":true,"CHARLES|||20.05.2026|||Harbor Master":true,"CHARLES|||20.05.2026|||СКО":true,"CHARLES|||20.05.2026|||ISPS":true,"CHARLES|||20.05.2026|||Port Clearance":true,"CHARLES|||20.05.2026|||DATA FOR DOCS":true,"CHARLES|||20.05.2026|||Pre-stowage plan":true,"CHARLES|||20.05.2026|||Terminal Inquiry":true,"CHARLES|||20.05.2026|||XL":true,"GOLDEN NOUR|||20.05.2026|||Notice":true,"GOLDEN NOUR|||20.05.2026|||ЄАІС":true,"GOLDEN NOUR|||20.05.2026|||ANNEX":true,"GOLDEN NOUR|||20.05.2026|||Harbor Master":true,"GOLDEN NOUR|||20.05.2026|||СКО":true,"GOLDEN NOUR|||20.05.2026|||ISPS":true,"GOLDEN NOUR|||20.05.2026|||Port Clearance":true,"GOLDEN NOUR|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN NOUR|||20.05.2026|||Pre-stowage plan":true,"GOLDEN NOUR|||20.05.2026|||Terminal Inquiry":true,"GOLDEN NOUR|||20.05.2026|||XL":true,"LADY MONICA|||20.05.2026|||Notice":true,"LADY MONICA|||20.05.2026|||ЄАІС":true,"LADY MONICA|||20.05.2026|||ANNEX":true,"LADY MONICA|||20.05.2026|||Harbor Master":true,"LADY MONICA|||20.05.2026|||СКО":true,"LADY MONICA|||20.05.2026|||ISPS":true,"LADY MONICA|||20.05.2026|||Port Clearance":true,"LADY MONICA|||20.05.2026|||DATA FOR DOCS":true,"LADY MONICA|||20.05.2026|||Pre-stowage plan":true,"LADY MONICA|||20.05.2026|||Terminal Inquiry":true,"LADY MONICA|||20.05.2026|||XL":true,"PELIKAN|||20.05.2026|||Notice":true,"PELIKAN|||20.05.2026|||ЄАІС":true,"PELIKAN|||20.05.2026|||ANNEX":true,"PELIKAN|||20.05.2026|||Harbor Master":true,"PELIKAN|||20.05.2026|||СКО":true,"PELIKAN|||20.05.2026|||ISPS":true,"PELIKAN|||20.05.2026|||Port Clearance":true,"PELIKAN|||20.05.2026|||DATA FOR DOCS":true,"PELIKAN|||20.05.2026|||Pre-stowage plan":true,"PELIKAN|||20.05.2026|||Terminal Inquiry":true,"PELIKAN|||20.05.2026|||XL":true,"PUNKT|||21.05.2026|||Notice":true,"PUNKT|||21.05.2026|||ЄАІС":true,"PUNKT|||21.05.2026|||ANNEX":true,"PUNKT|||21.05.2026|||Harbor Master":true,"PUNKT|||21.05.2026|||СКО":true,"PUNKT|||21.05.2026|||ISPS":true,"PUNKT|||21.05.2026|||Port Clearance":true,"PUNKT|||21.05.2026|||Pre-stowage plan":true,"PUNKT|||21.05.2026|||Terminal Inquiry":true,"PUNKT|||21.05.2026|||XL":true,"EVANGELISTRIA|||21.05.2026|||Notice":true,"EVANGELISTRIA|||21.05.2026|||ЄАІС":true,"A.M.K EVANDER|||20.05.2026|||ANNEX":true,"A.M.K EVANDER|||20.05.2026|||Harbor Master":true};
   doSaveLoc();doRender();doSaveCloud();
 }
 
@@ -328,7 +332,36 @@ function doXL(e,i){
 
 function doSetField(inp){var i=parseInt(inp.getAttribute('data-i'));V[i][inp.getAttribute('data-f')]=inp.value;doSave();setTimeout(doRender,30);}
 function doSetBerth(inp){var i=parseInt(inp.getAttribute('data-i'));V[i].berth=inp.value;doSave();setTimeout(doRender,30);}
-function doSetEtaSwa(inp){var i=parseInt(inp.getAttribute('data-i'));V[i][inp.getAttribute('data-f')]=inp.value;doSave();doRender();}
+
+// ETA SWA: click → edit mode; blur away → display mode
+function doEtaOpen(ri){
+  etaEditRow=ri;
+  doRender();
+  setTimeout(function(){
+    var inp=document.querySelector('.eta-date[data-i="'+ri+'"]');
+    if(inp){inp.focus();try{inp.showPicker();}catch(e){}}
+  },10);
+}
+
+function doSetEtaSwa(inp){
+  var i=parseInt(inp.getAttribute('data-i'));
+  V[i][inp.getAttribute('data-f')]=inp.value;
+  doSave();
+}
+
+function doEtaBlur(ri){
+  setTimeout(function(){
+    var active=document.activeElement;
+    if(active){
+      var cls=active.className||'';
+      if((cls.indexOf('eta-date')!==-1||cls.indexOf('eta-time')!==-1)&&parseInt(active.getAttribute('data-i'))===ri){
+        return; // moved to sibling input in same row
+      }
+    }
+    etaEditRow=-1;
+    doRender();
+  },150);
+}
 
 function renderVesselRow(v,isSailed){
   var ri=V.indexOf(v),ek=v.name+'|||'+v.addedDate,op=!!EX[ek];
@@ -365,10 +398,23 @@ function renderVesselRow(v,isSailed){
 
   // ETA SWA cell
   h+='<td class="etac" style="background:'+cellBg+';border-color:'+cellBo+'">';
-  h+='<div class="etaw">';
-  h+='<input type="date" class="eta-date" data-i="'+ri+'" data-f="etaswa" value="'+(v.etaswa||'')+'" onchange="doSetEtaSwa(this)">';
-  h+='<input type="time" class="eta-time" data-i="'+ri+'" data-f="etaswatime" value="'+(v.etaswatime||'')+'" onchange="doSetEtaSwa(this)">';
-  h+='</div></td>';
+  if(etaEditRow===ri){
+    // Edit mode: show inputs
+    h+='<div class="eta-inputs">';
+    h+='<input type="date" class="eta-date" data-i="'+ri+'" data-f="etaswa" value="'+(v.etaswa||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
+    h+='<input type="time" class="eta-time" data-i="'+ri+'" data-f="etaswatime" value="'+(v.etaswatime||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
+    h+='</div>';
+  }else{
+    // Display mode: show formatted value or placeholder
+    var etaContent;
+    if(v.etaswa){
+      etaContent='<span class="eta-disp">'+ec(fmtD(v.etaswa))+'</span>'+(v.etaswatime?'<span class="eta-time-val">'+ec(v.etaswatime)+'</span>':'');
+    }else{
+      etaContent='<span class="eta-ph">—</span>';
+    }
+    h+='<div class="eta-cell" onclick="doEtaOpen('+ri+')" title="Нажмите для редактирования">'+etaContent+'</div>';
+  }
+  h+='</td>';
 
   // Doc columns
   DOCS.forEach(function(d){
@@ -405,7 +451,6 @@ function doRender(){
   if(!filtered.length){
     h+='<tr><td colspan="'+ncols+'"><div class="nr">Нет судов</div></td></tr>';
   }else{
-    // Split into groups
     var alongside=[],sulina=[],forthcoming=[],sailed=[];
     filtered.forEach(function(v){
       if(v.dep&&v.dep.trim())sailed.push(v);
@@ -414,7 +459,6 @@ function doRender(){
       else forthcoming.push(v);
     });
 
-    // Sort each group
     function byArr(a,b){return b.arr>a.arr?1:b.arr<a.arr?-1:0;}
     function byEta(a,b){
       var ea=(a.etaswa||'')+'T'+(a.etaswatime||'00:00');
@@ -431,10 +475,9 @@ function doRender(){
     });
     sailed.sort(function(a,b){return b.dep>a.dep?1:b.dep<a.dep?-1:0;});
 
-    // Section headers config
     var sections=[
-      {key:'sec_alongside',label:'Alongside berth',list:alongside,bg:'#dbeafe',bo:'#3b82f6',tc:'#1e40af'},
-      {key:'sec_sulina',   label:'Sulina anchorage',list:sulina,  bg:'#fef3c7',bo:'#f59e0b',tc:'#92400e'},
+      {key:'sec_alongside',label:'Alongside berth', list:alongside,  bg:'#dbeafe',bo:'#3b82f6',tc:'#1e40af'},
+      {key:'sec_sulina',   label:'Sulina anchorage',list:sulina,     bg:'#fef3c7',bo:'#f59e0b',tc:'#92400e'},
       {key:'sec_forth',    label:'Forthcoming',     list:forthcoming,bg:'#f1f5f9',bo:'#94a3b8',tc:'#475569'}
     ];
 
@@ -449,7 +492,6 @@ function doRender(){
       if(!isCol){sec.list.forEach(function(v){h+=renderVesselRow(v,false);});}
     });
 
-    // Sailed vessels grouped by month
     if(sailed.length){
       var lk=null;
       sailed.forEach(function(v){
