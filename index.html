@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VESSEL DATA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f2f8;min-height:100vh}
+.topbar{background:linear-gradient(135deg,#0f1f35,#1a3557);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ti{width:32px;height:32px;background:rgba(255,255,255,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tt{flex:1}.tt h1{font-size:14px;font-weight:600}.tt p{font-size:10px;opacity:.5}
+.tb{padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:11px;cursor:pointer;position:relative;display:flex;align-items:center;gap:4px}
+.tb:hover{background:rgba(255,255,255,.22)}
+.tb.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block;margin-left:2px;flex-shrink:0}
+.sync-dot.busy{background:#fbbf24;animation:pulse .6s ease-in-out infinite alternate}
+.sync-dot.err{background:#f87171}
+@keyframes pulse{from{opacity:.4}to{opacity:1}}
+.wrap{padding:14px}
+.card{background:#fff;border-radius:12px;border:1px solid #e2e6f0;overflow:hidden}
+.sb{padding:9px 12px;border-bottom:1px solid #e8eaf0;background:#fafbfd;display:flex;align-items:center;gap:8px}
+.sb input{flex:1;border:none;background:transparent;font-size:13px;outline:none}
+.ab{padding:6px 12px;border-radius:7px;border:none;background:#1a3557;color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.gw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #eaecf4}
+th.cn{width:155px;min-width:140px;background:#f7f8fc;padding:8px 10px;font-size:9px;color:#8a93a8;font-weight:600;text-align:left;vertical-align:bottom;position:sticky;left:0;z-index:3;text-transform:uppercase}
+th.etah{width:115px;min-width:105px;padding:7px 4px 5px;font-size:9px;font-weight:700;text-align:center;color:#4a5568;background:#f7f8fc;line-height:1.3;vertical-align:bottom}
+th.dh{width:60px;min-width:60px;padding:7px 3px 5px;font-size:9px;font-weight:700;text-align:center;color:#4a5568;background:#f7f8fc;line-height:1.3;vertical-align:bottom;word-break:break-word}
+th.xh{width:32px;min-width:32px;background:#f7f8fc;border-left:2px solid #e2e6f0}
+td.vc{position:sticky;left:0;z-index:2;border-right:2px solid #e2e6f0;width:155px;min-width:140px;padding:0;vertical-align:top}
+td.etac{width:115px;min-width:105px;padding:3px 4px;vertical-align:middle}
+.etaw{display:flex;flex-direction:column;gap:2px;padding:1px 0}
+.eta-date,.eta-time{font-size:10px;border:1px solid #e2e6f0;border-radius:4px;padding:2px 3px;background:#fff;width:100%;outline:none;color:#1d2939}
+.eta-date:focus,.eta-time:focus{border-color:#3b82f6}
+.vw{position:relative}
+.vm{display:flex;align-items:flex-start;min-height:36px;padding:4px 22px 4px 9px;cursor:pointer}
+.vm:hover{filter:brightness(.96)}
+.vi{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0}
+.vn{font-size:11px;font-weight:700;color:#0f1f35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.ar{font-size:7px;color:#94a3b8;transition:transform .2s;display:inline-block}
+.ar.o{transform:rotate(90deg)}
+.vs{font-size:9px;font-weight:600;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vs.s{color:#16a34a}.vs.b{color:#3b82f6}.vs.a{color:#d97706}
+.vd{display:none;padding:8px 10px 10px;border-top:1px solid rgba(0,0,0,.07)}
+.vd.o{display:block}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px}
+.di{display:flex;flex-direction:column;gap:1px}
+.di.f{grid-column:1/-1}
+.dl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.dv{font-size:11px;color:#1d2939;font-weight:600}
+.dv.e{color:#c8cdd8;font-weight:400}
+.di input[type=date]{font-size:11px;border:1.5px solid #e2e6f0;border-radius:6px;padding:3px 6px;outline:none;width:100%;background:#fff}
+.di input[type=date]:focus{border-color:#3b82f6}
+.bf{font-size:11px;border:1.5px solid #e2e6f0;border-radius:6px;padding:3px 6px;outline:none;width:80px;background:#fff;font-weight:600;color:#1d2939}
+.bf:focus{border-color:#3b82f6}
+.ml{font-size:11px;color:#3b82f6;text-decoration:none;font-weight:500}
+td.cc{width:60px;min-width:60px;padding:0;text-align:center;vertical-align:middle;cursor:pointer;user-select:none}
+.tw{height:36px;display:flex;align-items:center;justify-content:center}
+td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middle;border-left:2px solid #e2e6f0}
+.xl{width:32px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#c8cdd8;position:relative}
+.xl:hover{color:#3b82f6}
+.xl input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.db{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;border:1px solid #e2e6f0;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#c0c8d8;padding:0;line-height:0}
+.db:hover{background:#fff0f0;border-color:#fca5a5;color:#ef4444}
+.shr td,.mhr td{font-size:10px;font-weight:700;text-transform:uppercase;padding:6px 12px;cursor:pointer;user-select:none;letter-spacing:.06em}
+.shr td:hover,.mhr td:hover{filter:brightness(.97)}
+.nr{padding:24px;text-align:center;color:#94a3b8;font-size:13px}
+.ov{display:none;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:100;align-items:center;justify-content:center}
+.ov.o{display:flex}
+.mb{background:#fff;border-radius:14px;padding:20px;min-width:280px;max-width:340px;width:100%}
+.mb h3{font-size:14px;font-weight:700;margin-bottom:4px;color:#0f1f35}
+.mb p{font-size:11px;color:#94a3b8;margin-bottom:14px}
+.fl{font-size:11px;color:#64748b;font-weight:600;margin-bottom:4px;display:block;text-transform:uppercase}
+.mb input[type=text]{width:100%;padding:8px 12px;font-size:13px;border-radius:8px;border:1.5px solid #e2e6f0;color:#0f1f35;margin-bottom:10px;outline:none}
+.mb input[type=text]:focus{border-color:#3b82f6}
+.ma{display:flex;gap:7px;justify-content:flex-end}
+.bn{padding:7px 14px;border-radius:8px;border:1.5px solid #e2e6f0;background:#fff;color:#4a5568;cursor:pointer;font-size:12px;font-weight:600}
+.bn.p{background:#1a3557;color:#fff;border-color:transparent}
+.tst{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f1f35;color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap}
+.tst.o{opacity:1}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="ti">
+    <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
+      <line x1="50" y1="10" x2="50" y2="52" stroke="white" stroke-width="3" stroke-linecap="round"/>
+      <rect x="34" y="38" width="32" height="16" rx="3" fill="white" opacity="0.9"/>
+      <circle cx="42" cy="46" r="3" fill="#1a3557"/><circle cx="52" cy="46" r="3" fill="#1a3557"/><circle cx="62" cy="46" r="3" fill="#1a3557"/>
+      <path d="M18 54 L26 72 L74 72 L82 54 Z" fill="white" opacity="0.95"/>
+    </svg>
+  </div>
+  <div class="tt"><h1>VESSEL DATA</h1><p>Port Agency Document Tracker</p></div>
+  <button class="tb" id="btnRefresh" onclick="doManualRefresh()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    Обновить
+    <span class="sync-dot" id="syncDot"></span>
+  </button>
+  <button class="tb" onclick="doExportJSON()">💾 JSON</button>
+  <button class="tb" onclick="doExportXL()">📊 XL</button>
+  <label class="tb">📂 Импорт
+    <input type="file" accept=".json" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" onchange="doImport(event)"/>
+  </label>
+</div>
+<div class="wrap">
+  <div class="card">
+    <div class="sb">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="fSrch" placeholder="Поиск..." oninput="doRender()"/>
+      <button class="ab" onclick="doOpenModal()">+ Добавить судно</button>
+    </div>
+    <div class="gw"><table id="tbl"></table></div>
+  </div>
+</div>
+<div class="ov" id="modal" onclick="if(event.target===this)doCloseModal()">
+  <div class="mb">
+    <h3>Добавить судно</h3><p>Данные загрузите из Excel</p>
+    <label class="fl">Название *</label>
+    <input type="text" id="iName" placeholder="LUGANO"/>
+    <label class="fl">IMO (необязательно)</label>
+    <input type="text" id="iImo" placeholder="9132662" maxlength="10"/>
+    <div class="ma">
+      <button class="bn" onclick="doCloseModal()">Отмена</button>
+      <button class="bn p" onclick="doConfirm()">Добавить</button>
+    </div>
+  </div>
+</div>
+<div class="tst" id="tst"></div>
+
+<script>
+var DOCS=['Notice','ДОНОС','ANNEX','Harbor Master','СКП','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
+var KEY='vd1';
+var JBURL='https://api.jsonbin.io/v3/b/6a0b8b67ee5a733b12df2777';
+var JBKEY='$2a$10$oLuUpIsaitxUZlA4zrzNuOJ2V6toW0lKTcV38tN5GBVIJaDxlS3Xa';
+var MC=[
+  {bg:'#eef3ff',bo:'#c5d4f7',lb:'Январь'},{bg:'#f3eeff',bo:'#d4c5f7',lb:'Февраль'},
+  {bg:'#ffeef5',bo:'#f7c5dc',lb:'Март'},{bg:'#fff4ee',bo:'#f7d9c5',lb:'Апрель'},
+  {bg:'#eefff3',bo:'#c5f7d4',lb:'Май'},{bg:'#eefbff',bo:'#c5eaf7',lb:'Июнь'},
+  {bg:'#fffcee',bo:'#f7f0c5',lb:'Июль'},{bg:'#fff0ee',bo:'#f7cec5',lb:'Август'},
+  {bg:'#f3ffee',bo:'#d4f7c5',lb:'Сентябрь'},{bg:'#eef6ff',bo:'#c5dcf7',lb:'Октябрь'},
+  {bg:'#fbeeff',bo:'#e8c5f7',lb:'Ноябрь'},{bg:'#eefffc',bo:'#c5f7ee',lb:'Декабрь'}
+];
+var FMAP={'название судна':'name','тип судна':'type','флаг':'flag','класс':'class','порт регистрации':'portreg','imo →':'imo','imo no':'imo','imo':'imo','call sign':'cs','dw':'dw','grt':'grt','nrt':'nrt','loa':'loa','lbp':'lbp','boa':'boa','dmd:':'dmd','dmd':'dmd','t sum':'tsum','судовладелец':'owner','кол-во трюмов / крыш.':'holds','кол-во трюмов/крыш.':'holds','кол-во трюмов':'holds','объем':'volume','объём':'volume','год постройки':'year','mmsi':'mmsi','груз':'cargo','кол-во груза':'cargoqty','причал':'berth'};
+var FMAP_COL2={'груз':true,'кол-во груза':true,'причал':true};
+var CF=[{k:'arr',l:'ARR',dt:1},{k:'dep',l:'DEP',dt:1},{k:'berth',l:'Berth →',tx:1},{k:'cargo',l:'Cargo'},{k:'cargoqty',l:'Cargo qty'},{k:'type',l:'Тип судна'},{k:'flag',l:'Флаг'},{k:'class',l:'Класс'},{k:'portreg',l:'Порт регистрации'},{k:'imo',l:'IMO →'},{k:'cs',l:'Call Sign'},{k:'year',l:'Built'},{k:'dw',l:'DW'},{k:'loa',l:'LOA'},{k:'lbp',l:'LBP'},{k:'boa',l:'BOA'},{k:'dmd',l:'Dmd'},{k:'tsum',l:'T sum'},{k:'owner',l:'Судовладелец',f:1},{k:'holds',l:'Трюмов/крыш.'},{k:'volume',l:'Объём'},{k:'mt',l:'MarineTraffic',f:1,lnk:1}];
+var V=[],S={},EX={},COLLAPSED={};
+var cloudQueue=null,cloudRetry=0;
+
+var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/></svg>';
+var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
+var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+
+function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
+function sk(n,d){return n+'|||'+d;}
+function gs(n,d){return!!S[sk(n,d)];}
+function ec(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getMI(v){if(!v.dep)return -1;var p=v.dep.split('-');if(p.length!==3)return -1;var m=parseInt(p[1])-1;return(m>=0&&m<=11)?m:-1;}
+function getMK(v){if(!v.dep)return 'x';var p=v.dep.split('-');return p.length===3?p[0]+'-'+p[1]:'x';}
+function getML(v){var i=getMI(v);if(i<0)return'';return MC[i].lb+' '+v.dep.split('-')[0];}
+function fmtD(d){if(!d)return'';var p=d.split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:d;}
+
+function isAtSulina(v){
+  if(!v.etaswa)return false;
+  var dt=new Date(v.etaswa+'T'+(v.etaswatime||'00:00'));
+  return dt<=new Date();
+}
+
+function getSt(v){
+  if(v.dep&&v.dep.trim())return{c:'s',t:'Sailed '+fmtD(v.dep)};
+  if(v.berth&&v.berth.trim())return{c:'b',t:'Alongside berth → '+v.berth};
+  if(isAtSulina(v))return{c:'a',t:'At Sulina anchorage'};
+  return null;
+}
+
+function doToast(m,dur){var t=document.getElementById('tst');t.textContent=m;t.classList.add('o');clearTimeout(t._x);t._x=setTimeout(function(){t.classList.remove('o');},(dur||2500));}
+
+function setSyncDot(state){
+  var d=document.getElementById('syncDot'),b=document.getElementById('btnRefresh');
+  if(!d)return;
+  d.className='sync-dot'+(state==='busy'?' busy':state==='err'?' err':'');
+  if(b)b.className='tb'+(state==='busy'?' spin':'');
+}
+
+function doSaveLoc(){
+  try{localStorage.setItem(KEY,JSON.stringify({vessels:V,state:S,ts:Date.now()}));}catch(e){}
+}
+
+function doSaveCloud(onDone){
+  setSyncDot('busy');
+  var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
+  fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(function(){cloudRetry=0;setSyncDot('ok');doSaveLoc();if(onDone)onDone(true);})
+  .catch(function(){
+    cloudRetry++;setSyncDot('err');
+    if(cloudRetry<=5){setTimeout(function(){doSaveCloud(onDone);},3000);}
+    else{doToast('⚠️ Ошибка сохранения, проверьте сеть',4000);cloudRetry=0;if(onDone)onDone(false);}
+  });
+}
+
+function doSave(){
+  doSaveLoc();
+  clearTimeout(cloudQueue);
+  cloudQueue=setTimeout(function(){doSaveCloud();},600);
+}
+
+function doLoad(){
+  var raw=null;
+  try{raw=localStorage.getItem(KEY);}catch(e){}
+  if(raw){
+    try{
+      var d=JSON.parse(raw);
+      if(d.vessels&&d.vessels.length>0){
+        V=d.vessels.map(function(v){return Object.assign(newV(),v);});
+        S=d.state||{};doRender();doLoadCloud(false);return;
+      }
+    }catch(e){}
+  }
+  setSyncDot('busy');
+  fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d&&d.vessels&&d.vessels.length>0){
+      V=d.vessels.map(function(v){return Object.assign(newV(),v);});
+      S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
+    }else{doLoadInitial();}
+  })
+  .catch(function(){doLoadInitial();setSyncDot('err');});
+}
+
+function doLoadCloud(showToast){
+  fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d||!d.vessels)return;
+    var remoteTs=d.ts||0,localTs=0;
+    try{var loc=localStorage.getItem(KEY);if(loc){var lp=JSON.parse(loc);localTs=lp.ts||0;}}catch(e){}
+    if(remoteTs>localTs){
+      V=d.vessels.map(function(v){return Object.assign(newV(),v);});
+      S=d.state||{};doSaveLoc();doRender();
+      if(showToast!==false)doToast('🔄 Данные синхронизированы');
+      setSyncDot('ok');
+    }
+  })
+  .catch(function(){});
+}
+
+function doManualRefresh(){
+  setSyncDot('busy');
+  fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(function(d){
+    if(!d||!d.vessels)throw new Error('нет данных');
+    V=d.vessels.map(function(v){return Object.assign(newV(),v);});
+    S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
+    doToast('✓ Обновлено — последняя версия загружена');
+  })
+  .catch(function(e){setSyncDot('err');doToast('⚠️ Не удалось обновить: '+e.message,4000);});
+}
+
+function doLoadInitial(){
+  V=[{name:"GOLDEN EMAN",imo:"9576014",type:"BULK CARRIER",flag:"BARBADOS",class:"DBS",portreg:"BRIDGETOWN",cs:"8P2366",dw:"30346.60",grt:"18873",nrt:"10395",loa:"176.20",lbp:"168.73",boa:"26.00",dmd:"14.00",tsum:"10.06",owner:"GOLDEN EMAN SHIPTRADE LTD",holds:"5",volume:"38736.70",year:"2010",arr:"2026-05-20",dep:"",berth:"16",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"SEARENA",imo:"9250567",type:"BULK CARRIER",flag:"BELIZE",class:"BV",portreg:"BELIZE CITY",cs:"V3WW8",dw:"31838",grt:"19795",nrt:"11034",loa:"176.75",lbp:"168.56",boa:"29.40",dmd:"13.50",tsum:"9.54",owner:"SEARENA ENTERPRISES LTD",holds:"5",volume:"40959.87",year:"2002",arr:"2026-05-19",dep:"",berth:"17",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"19.05.2026",mmsi:""},
+  {name:"LADY MONICA",imo:"9392078",type:"GENERAL CARGO SHIP",flag:"PANAMA",class:"RINA",portreg:"PANAMA",cs:"3FOQ3",dw:"35068.5",grt:"21192",nrt:"12335",loa:"179.99",lbp:"172.32",boa:"28.20",dmd:"14.30",tsum:"10.38",owner:"MONICA MARINE S.A.",holds:"5",volume:"44642",year:"2009",arr:"2026-05-18",dep:"",berth:"3/4",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"LUNARA",imo:"",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"21.05.2026",mmsi:""},
+  {name:"MONTREUX",imo:"",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"21.05.2026",mmsi:""},
+  {name:"HONORINE",imo:"",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"21.05.2026",mmsi:""},
+  {name:"A.M.K EVANDER",imo:"9221633",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"PELIKAN",imo:"9474280",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"CHARLES",imo:"9595175",type:"BULK CARRIER",flag:"MARSHALL ISLANDS",class:"NKK",portreg:"MAJURO",cs:"V7A7106",dw:"37193",grt:"22662",nrt:"12531",loa:"186.40",lbp:"178.93",boa:"27.60",dmd:"15.60",tsum:"10.98",owner:"TOKO KAIUN CO., LTD.",holds:"5",volume:"47899.30",year:"2011",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"PUNKT",imo:"",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"21.05.2026",mmsi:""},
+  {name:"EVANGELISTRIA",imo:"",type:"",flag:"",class:"",portreg:"",cs:"",dw:"",grt:"",nrt:"",loa:"",lbp:"",boa:"",dmd:"",tsum:"",owner:"",holds:"",volume:"",year:"",arr:"",dep:"",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"21.05.2026",mmsi:""},
+  {name:"GOLDEN NOUR",imo:"9497440",type:"BULK CARRIER",flag:"SIERRA LEONE",class:"DBS",portreg:"FREETOWN",cs:"9LS2000",dw:"31780",grt:"19994",nrt:"10883",loa:"177.50",lbp:"169.02",boa:"28.20",dmd:"14.20",tsum:"10.00",owner:"GOLDEN NOUR SHIPTRADE LTD",holds:"5",volume:"42006.19",year:"2008",arr:"2026-05-16",dep:"2026-05-21",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"LUGANO",imo:"9132662",type:"BULK CARRIER",flag:"BELIZE",class:"NK",portreg:"BELIZE CITY",cs:"V3OU2",dw:"28350",grt:"16761",nrt:"10452",loa:"169.03",lbp:"161.21",boa:"27.20",dmd:"13.60",tsum:"9.74",owner:"EUROEAST SHIPPING LTD",holds:"5",volume:"37523",year:"1996",arr:"2026-05-16",dep:"2026-05-20",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"19.05.2026",mmsi:""},
+  {name:"RAFINA",imo:"9159737",type:"BULK CARRIER",flag:"TOGO",class:"DBS",portreg:"LOME",cs:"5VJI3",dw:"28747",grt:"17377",nrt:"10133",loa:"176.62",lbp:"170.14",boa:"26.00",dmd:"13.60",tsum:"9.61",owner:"AMATHUS MARINE LTD",holds:"5",volume:"39036",year:"1997",arr:"2026-05-15",dep:"2026-05-19",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
+  {name:"DR SARKAS",imo:"9222558",type:"BULK CARRIER",flag:"BARBADOS",class:"NK",portreg:"BRIDGETOWN",cs:"8PYO8",dw:"28290",grt:"17859",nrt:"9828",loa:"171.93",lbp:"165.28",boa:"27.00",dmd:"13.60",tsum:"9.55",owner:"SARKAS SHIPHOLDING LTD",holds:"5",volume:"38232.05",year:"2000",arr:"2026-05-17",dep:"2026-05-19",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"19.05.2026",mmsi:""}
+  ].map(function(v){return Object.assign(newV(),v);});
+  S={"LUGANO|||19.05.2026|||Notice":true,"LUGANO|||19.05.2026|||ДОНОС":true,"LUGANO|||19.05.2026|||ANNEX":true,"LUGANO|||19.05.2026|||Harbor Master":true,"LUGANO|||19.05.2026|||СКП":true,"LUGANO|||19.05.2026|||ISPS":true,"LUGANO|||19.05.2026|||Port Clearance":true,"LUGANO|||19.05.2026|||DATA FOR DOCS":true,"LUGANO|||19.05.2026|||Pre-stowage plan":true,"LUGANO|||19.05.2026|||Terminal Inquiry":true,"LUGANO|||19.05.2026|||XL":true,"DR SARKAS|||19.05.2026|||Notice":true,"DR SARKAS|||19.05.2026|||ДОНОС":true,"DR SARKAS|||19.05.2026|||ANNEX":true,"DR SARKAS|||19.05.2026|||Harbor Master":true,"DR SARKAS|||19.05.2026|||СКП":true,"DR SARKAS|||19.05.2026|||ISPS":true,"DR SARKAS|||19.05.2026|||Port Clearance":true,"DR SARKAS|||19.05.2026|||DATA FOR DOCS":true,"DR SARKAS|||19.05.2026|||Pre-stowage plan":true,"DR SARKAS|||19.05.2026|||Terminal Inquiry":true,"DR SARKAS|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||Terminal Inquiry":true,"SEARENA|||19.05.2026|||Pre-stowage plan":true,"SEARENA|||19.05.2026|||DATA FOR DOCS":true,"SEARENA|||19.05.2026|||Port Clearance":true,"SEARENA|||19.05.2026|||ISPS":true,"SEARENA|||19.05.2026|||СКП":true,"SEARENA|||19.05.2026|||Harbor Master":true,"SEARENA|||19.05.2026|||ANNEX":true,"SEARENA|||19.05.2026|||ДОНОС":true,"SEARENA|||19.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||ДОНОС":true,"GOLDEN EMAN|||20.05.2026|||Notice":true,"GOLDEN EMAN|||20.05.2026|||ДОНОС":true,"GOLDEN EMAN|||20.05.2026|||ANNEX":true,"GOLDEN EMAN|||20.05.2026|||Harbor Master":true,"GOLDEN EMAN|||20.05.2026|||СКП":true,"GOLDEN EMAN|||20.05.2026|||ISPS":true,"GOLDEN EMAN|||20.05.2026|||Port Clearance":true,"GOLDEN EMAN|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN EMAN|||20.05.2026|||Pre-stowage plan":true,"GOLDEN EMAN|||20.05.2026|||Terminal Inquiry":true,"GOLDEN EMAN|||20.05.2026|||XL":true,"RAFINA|||20.05.2026|||Notice":true,"RAFINA|||20.05.2026|||ДОНОС":true,"RAFINA|||20.05.2026|||ANNEX":true,"RAFINA|||20.05.2026|||Harbor Master":true,"RAFINA|||20.05.2026|||СКП":true,"RAFINA|||20.05.2026|||ISPS":true,"RAFINA|||20.05.2026|||Port Clearance":true,"RAFINA|||20.05.2026|||DATA FOR DOCS":true,"RAFINA|||20.05.2026|||Pre-stowage plan":true,"RAFINA|||20.05.2026|||Terminal Inquiry":true,"RAFINA|||20.05.2026|||XL":true,"CHARLES|||20.05.2026|||Notice":true,"CHARLES|||20.05.2026|||ДОНОС":true,"CHARLES|||20.05.2026|||ANNEX":true,"CHARLES|||20.05.2026|||Harbor Master":true,"CHARLES|||20.05.2026|||СКП":true,"CHARLES|||20.05.2026|||ISPS":true,"CHARLES|||20.05.2026|||Port Clearance":true,"CHARLES|||20.05.2026|||DATA FOR DOCS":true,"CHARLES|||20.05.2026|||Pre-stowage plan":true,"CHARLES|||20.05.2026|||Terminal Inquiry":true,"CHARLES|||20.05.2026|||XL":true,"GOLDEN NOUR|||20.05.2026|||Notice":true,"GOLDEN NOUR|||20.05.2026|||ДОНОС":true,"GOLDEN NOUR|||20.05.2026|||ANNEX":true,"GOLDEN NOUR|||20.05.2026|||Harbor Master":true,"GOLDEN NOUR|||20.05.2026|||СКП":true,"GOLDEN NOUR|||20.05.2026|||ISPS":true,"GOLDEN NOUR|||20.05.2026|||Port Clearance":true,"GOLDEN NOUR|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN NOUR|||20.05.2026|||Pre-stowage plan":true,"GOLDEN NOUR|||20.05.2026|||Terminal Inquiry":true,"GOLDEN NOUR|||20.05.2026|||XL":true,"LADY MONICA|||20.05.2026|||Notice":true,"LADY MONICA|||20.05.2026|||ДОНОС":true,"LADY MONICA|||20.05.2026|||ANNEX":true,"LADY MONICA|||20.05.2026|||Harbor Master":true,"LADY MONICA|||20.05.2026|||СКП":true,"LADY MONICA|||20.05.2026|||ISPS":true,"LADY MONICA|||20.05.2026|||Port Clearance":true,"LADY MONICA|||20.05.2026|||DATA FOR DOCS":true,"LADY MONICA|||20.05.2026|||Pre-stowage plan":true,"LADY MONICA|||20.05.2026|||Terminal Inquiry":true,"LADY MONICA|||20.05.2026|||XL":true,"PELIKAN|||20.05.2026|||Notice":true,"PELIKAN|||20.05.2026|||ДОНОС":true,"PELIKAN|||20.05.2026|||ANNEX":true,"PELIKAN|||20.05.2026|||Harbor Master":true,"PELIKAN|||20.05.2026|||СКП":true,"PELIKAN|||20.05.2026|||ISPS":true,"PELIKAN|||20.05.2026|||Port Clearance":true,"PELIKAN|||20.05.2026|||DATA FOR DOCS":true,"PELIKAN|||20.05.2026|||Pre-stowage plan":true,"PELIKAN|||20.05.2026|||Terminal Inquiry":true,"PELIKAN|||20.05.2026|||XL":true,"PUNKT|||21.05.2026|||Notice":true,"PUNKT|||21.05.2026|||ДОНОС":true,"PUNKT|||21.05.2026|||ANNEX":true,"PUNKT|||21.05.2026|||Harbor Master":true,"PUNKT|||21.05.2026|||СКП":true,"PUNKT|||21.05.2026|||ISPS":true,"PUNKT|||21.05.2026|||Port Clearance":true,"PUNKT|||21.05.2026|||Pre-stowage plan":true,"PUNKT|||21.05.2026|||Terminal Inquiry":true,"PUNKT|||21.05.2026|||XL":true,"EVANGELISTRIA|||21.05.2026|||Notice":true,"EVANGELISTRIA|||21.05.2026|||ДОНОС":true,"A.M.K EVANDER|||20.05.2026|||ANNEX":true,"A.M.K EVANDER|||20.05.2026|||Harbor Master":true};
+  doSaveLoc();doRender();doSaveCloud();
+}
+
+function doExportJSON(){
+  var json=JSON.stringify({vessels:V,state:S,exportedAt:new Date().toISOString()},null,2);
+  var a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download='vessel-data-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();doToast('✓ JSON сохранён');
+}
+
+function doExportXL(){
+  var sorted=V.slice().sort(function(a,b){if(!a.dep&&!b.dep)return 0;if(!a.dep)return 1;if(!b.dep)return -1;return a.dep<b.dep?-1:a.dep>b.dep?1:0;});
+  var rows=[['Судно','ARR','DEP']],meta=[{t:'h'}],lastKey=null;
+  sorted.forEach(function(v){
+    var mk=getMK(v),mi=getMI(v),mc=mi>=0?MC[mi]:null;
+    if(mk!==lastKey&&lastKey!==null){rows.push(['','','']);meta.push({t:'s'});if(mc){var p=v.dep.split('-');rows.push([mc.lb+' '+p[0],'','']);meta.push({t:'m',hx:mc.bg.replace('#','')});}}
+    lastKey=mk;rows.push([v.name,fmtD(v.arr),fmtD(v.dep)]);meta.push({t:'v',hx:mc?mc.bg.replace('#',''):null});
+  });
+  var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:32},{wch:14},{wch:14}];ws['!rows']=meta.map(function(m){return m.t==='s'?{hpx:5}:{hpx:20};});
+  meta.forEach(function(m,i){['A','B','C'].forEach(function(col){var ref=col+(i+1);if(!ws[ref])ws[ref]={v:'',t:'s'};if(m.t==='h'){ws[ref].s={fill:{fgColor:{rgb:'1A3557'}},font:{bold:true,sz:11,color:{rgb:'FFFFFF'}},alignment:{horizontal:'center'}};}else if(m.t==='m'&&m.hx){ws[ref].s={fill:{fgColor:{rgb:m.hx}},font:{bold:true,sz:10,color:{rgb:'4A5568'}}};}else if(m.t==='v'&&m.hx){ws[ref].s={fill:{fgColor:{rgb:m.hx}},font:{bold:col==='A',sz:10},border:{top:{style:'thin',color:{rgb:'E2E6F0'}},bottom:{style:'thin',color:{rgb:'E2E6F0'}},left:{style:'thin',color:{rgb:'E2E6F0'}},right:{style:'thin',color:{rgb:'E2E6F0'}}}};}});});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Vessels');
+  XLSX.writeFile(wb,'vessel-journal-'+new Date().toISOString().slice(0,10)+'.xlsx',{cellStyles:true});
+  doToast('✓ Excel скачан');
+}
+
+function doImport(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(le){
+    try{var d=JSON.parse(le.target.result);if(!d.vessels)throw new Error('нет vessels');if(!confirm('Импортировать '+d.vessels.length+' судов?'))return;V=d.vessels.map(function(v){return Object.assign(newV(),v);});S=d.state||{};doSave();doRender();doToast('✓ '+V.length+' судов');}catch(ex){doToast('Ошибка: '+ex.message);}
+    e.target.value='';
+  };
+  r.readAsText(f,'UTF-8');
+}
+
+function doXL(e,i){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(le){
+    try{if(typeof XLSX==='undefined'){doToast('XLSX недоступен');return;}var wb=XLSX.read(new Uint8Array(le.target.result),{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});var n=0;rows.forEach(function(row){var lbl=String(row[0]||'').trim().toLowerCase().replace(/\s+/g,' ');if(!FMAP[lbl])return;var col=FMAP_COL2[lbl]?2:1;var val=String(row[col]||'').trim();if(!val)return;if(FMAP[lbl]==='name'&&V[i].name)return;V[i][FMAP[lbl]]=val;n++;});if(n>0){doRender();doSave();doToast('✓ '+n+' полей');}else doToast('Поля не найдены');}catch(ex){doToast('Ошибка: '+ex.message);}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function doSetField(inp){var i=parseInt(inp.getAttribute('data-i'));V[i][inp.getAttribute('data-f')]=inp.value;doSave();setTimeout(doRender,30);}
+function doSetBerth(inp){var i=parseInt(inp.getAttribute('data-i'));V[i].berth=inp.value;doSave();setTimeout(doRender,30);}
+function doSetEtaSwa(inp){var i=parseInt(inp.getAttribute('data-i'));V[i][inp.getAttribute('data-f')]=inp.value;doSave();doRender();}
+
+function renderVesselRow(v,isSailed){
+  var ri=V.indexOf(v),ek=v.name+'|||'+v.addedDate,op=!!EX[ek];
+  var midx=getMI(v),mc=midx>=0?MC[midx]:null;
+  var s=getSt(v);
+
+  var cellBg,cellBo,vcBg,vcBo;
+  if(isSailed&&mc){cellBg=mc.bg;cellBo=mc.bo;vcBg=mc.bg;vcBo=mc.bo;}
+  else{cellBg='#fff';cellBo='#eaecf4';vcBg='#f7f8fc';vcBo='#e2e6f0';}
+
+  var allChecked=!isSailed&&DOCS.every(function(d){return gs(ek,d);});
+  var tickBg=allChecked?'#dcfce7':cellBg,tickBo=allChecked?'#86efac':cellBo;
+
+  var h='<tr>';
+
+  // Vessel cell
+  h+='<td class="vc" style="background:'+vcBg+';border-color:'+vcBo+'">';
+  h+='<div class="vw"><div class="vm" style="background:'+vcBg+'" onclick="doTogExp('+ri+')">';
+  h+='<div class="vi"><span class="vn"><span class="ar'+(op?' o':'')+'">▶</span> '+ec(v.name)+'</span>';
+  if(s){h+='<span class="vs '+s.c+'" data-ek="'+ec(ek)+'">'+ec(s.t)+'</span>';}
+  h+='</div></div><button class="db" onclick="doDel('+ri+')">'+SVG_DEL+'</button></div>';
+  if(op){
+    var url=v.imo?'https://www.marinetraffic.com/en/ais/details/ships/imo:'+v.imo:'https://www.marinetraffic.com/en/ais/index/search/all/keyword:'+encodeURIComponent(v.name);
+    h+='<div class="vd o" style="background:'+vcBg+'"><div class="dg">';
+    CF.forEach(function(f){
+      if(f.lnk){h+='<div class="di f"><span class="dl">'+f.l+'</span><a href="'+url+'" target="_blank" class="ml">→ MarineTraffic</a></div>';}
+      else if(f.dt){h+='<div class="di"><span class="dl">'+f.l+'</span><input type="date" data-i="'+ri+'" data-f="'+f.k+'" value="'+(v[f.k]||'')+'" onchange="doSetField(this)"></div>';}
+      else if(f.tx){h+='<div class="di"><span class="dl">'+f.l+'</span><input type="text" class="bf" data-i="'+ri+'" value="'+ec(v[f.k]||'')+'" placeholder="→" maxlength="5" onchange="doSetBerth(this)"></div>';}
+      else{var val=v[f.k]&&String(v[f.k]).trim()?'<span class="dv">'+ec(String(v[f.k]))+'</span>':'<span class="dv e">—</span>';h+='<div class="di'+(f.f?' f':'')+'"><span class="dl">'+f.l+'</span>'+val+'</div>';}
+    });
+    h+='</div></div>';
+  }
+  h+='</td>';
+
+  // ETA SWA cell
+  h+='<td class="etac" style="background:'+cellBg+';border-color:'+cellBo+'">';
+  h+='<div class="etaw">';
+  h+='<input type="date" class="eta-date" data-i="'+ri+'" data-f="etaswa" value="'+(v.etaswa||'')+'" onchange="doSetEtaSwa(this)">';
+  h+='<input type="time" class="eta-time" data-i="'+ri+'" data-f="etaswatime" value="'+(v.etaswatime||'')+'" onchange="doSetEtaSwa(this)">';
+  h+='</div></td>';
+
+  // Doc columns
+  DOCS.forEach(function(d){
+    if(isSailed){
+      h+='<td class="cc" style="background:'+cellBg+';border-color:'+cellBo+'"><div class="tw"></div></td>';
+    }else{
+      var ok=gs(ek,d);
+      h+='<td class="cc" style="background:'+tickBg+';border-color:'+tickBo+'" onclick="doTick(\''+encodeURIComponent(ek)+'\',\''+encodeURIComponent(d)+'\')">';
+      h+='<div class="tw">'+(ok?SVG_CHECK:SVG_CROSS)+'</div></td>';
+    }
+  });
+
+  // XL upload
+  if(isSailed){
+    h+='<td class="xc" style="background:'+cellBg+';border-color:'+cellBo+'"></td>';
+  }else{
+    h+='<td class="xc" style="background:'+tickBg+';border-color:'+tickBo+'"><label class="xl">'+SVG_UPL+'<input type="file" accept=".xlsx,.xlsm,.xls" onchange="doXL(event,'+ri+')"/></label></td>';
+  }
+
+  h+='</tr>';
+  return h;
+}
+
+function doRender(){
+  var q=(document.getElementById('fSrch').value||'').toLowerCase().trim();
+  var filtered=q?V.filter(function(v){return v.name.toLowerCase().indexOf(q)!==-1;}):V;
+  var t=document.getElementById('tbl');
+  var ncols=DOCS.length+3;
+
+  var h='<thead><tr><th class="cn">Судно</th><th class="etah">ETA SWA</th>';
+  DOCS.forEach(function(d){h+='<th class="dh">'+ec(d)+'</th>';});
+  h+='<th class="xh"></th></tr></thead><tbody>';
+
+  if(!filtered.length){
+    h+='<tr><td colspan="'+ncols+'"><div class="nr">Нет судов</div></td></tr>';
+  }else{
+    // Split into groups
+    var alongside=[],sulina=[],forthcoming=[],sailed=[];
+    filtered.forEach(function(v){
+      if(v.dep&&v.dep.trim())sailed.push(v);
+      else if(v.berth&&v.berth.trim())alongside.push(v);
+      else if(isAtSulina(v))sulina.push(v);
+      else forthcoming.push(v);
+    });
+
+    // Sort each group
+    function byArr(a,b){return b.arr>a.arr?1:b.arr<a.arr?-1:0;}
+    function byEta(a,b){
+      var ea=(a.etaswa||'')+'T'+(a.etaswatime||'00:00');
+      var eb=(b.etaswa||'')+'T'+(b.etaswatime||'00:00');
+      return ea<eb?-1:ea>eb?1:0;
+    }
+    alongside.sort(byArr);
+    sulina.sort(byEta);
+    forthcoming.sort(function(a,b){
+      var ha=!!a.etaswa,hb=!!b.etaswa;
+      if(ha&&hb)return byEta(a,b);
+      if(ha)return -1;if(hb)return 1;
+      return(b.addedDate||'')>(a.addedDate||'')?1:-1;
+    });
+    sailed.sort(function(a,b){return b.dep>a.dep?1:b.dep<a.dep?-1:0;});
+
+    // Section headers config
+    var sections=[
+      {key:'sec_alongside',label:'Alongside berth',list:alongside,bg:'#dbeafe',bo:'#3b82f6',tc:'#1e40af'},
+      {key:'sec_sulina',   label:'Sulina anchorage',list:sulina,  bg:'#fef3c7',bo:'#f59e0b',tc:'#92400e'},
+      {key:'sec_forth',    label:'Forthcoming',     list:forthcoming,bg:'#f1f5f9',bo:'#94a3b8',tc:'#475569'}
+    ];
+
+    sections.forEach(function(sec){
+      if(!sec.list.length)return;
+      var isCol=!!COLLAPSED[sec.key],cnt=sec.list.length;
+      h+='<tr class="shr" onclick="doToggleMonth(\''+sec.key+'\')">';
+      h+='<td colspan="'+ncols+'" style="background:'+sec.bg+';border-top:2px solid '+sec.bo+';color:'+sec.tc+'">';
+      h+=(isCol?'▶ ':'▼ ')+sec.label;
+      h+='<span style="margin-left:8px;font-size:9px;font-weight:400;opacity:.7">'+cnt+' '+(cnt===1?'судно':cnt<5?'судна':'судов')+'</span>';
+      h+='</td></tr>';
+      if(!isCol){sec.list.forEach(function(v){h+=renderVesselRow(v,false);});}
+    });
+
+    // Sailed vessels grouped by month
+    if(sailed.length){
+      var lk=null;
+      sailed.forEach(function(v){
+        var midx=getMI(v),mki=getMK(v),mc=midx>=0?MC[midx]:null;
+        if(mki!==lk){
+          lk=mki;
+          if(mc){
+            var isCol=!!COLLAPSED[mki];
+            var mCount=sailed.filter(function(x){return getMK(x)===mki;}).length;
+            h+='<tr class="mhr" onclick="doToggleMonth(\''+mki+'\')">';
+            h+='<td colspan="'+ncols+'" style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';color:#64748b">';
+            h+=(isCol?'▶ ':'▼ ')+ec(getML(v));
+            h+='<span style="margin-left:8px;font-size:9px;font-weight:400;opacity:.7">'+mCount+' '+(mCount===1?'судно':mCount<5?'судна':'судов')+'</span>';
+            h+='</td></tr>';
+          }
+        }
+        if(!mc||!COLLAPSED[mki]){h+=renderVesselRow(v,true);}
+      });
+    }
+  }
+
+  h+='</tbody>';t.innerHTML=h;
+}
+
+function doTick(ve,de){var v=decodeURIComponent(ve),d=decodeURIComponent(de);S[sk(v,d)]=!gs(v,d);doRender();doSave();}
+function doTogExp(i){var v=V[i];EX[v.name+'|||'+v.addedDate]=!EX[v.name+'|||'+v.addedDate];doRender();}
+function doToggleMonth(mki){COLLAPSED[mki]=!COLLAPSED[mki];doRender();}
+function doDel(i){var v=V[i];if(!confirm('Удалить "'+v.name+'"?'))return;var ek=v.name+'|||'+v.addedDate;DOCS.forEach(function(d){delete S[sk(ek,d)];});V.splice(i,1);delete EX[ek];doRender();doSave();doToast('Судно удалено');}
+function doOpenModal(){document.getElementById('iName').value='';document.getElementById('iImo').value='';document.getElementById('modal').classList.add('o');setTimeout(function(){document.getElementById('iName').focus();},60);}
+function doCloseModal(){document.getElementById('modal').classList.remove('o');}
+function doConfirm(){var n=document.getElementById('iName').value.trim(),im=document.getElementById('iImo').value.trim();if(!n)return;V.unshift(newV(n,im));doCloseModal();doRender();doSave();doToast('✓ Судно добавлено');}
+document.addEventListener('keydown',function(e){if(!document.getElementById('modal').classList.contains('o'))return;if(e.key==='Enter')doConfirm();if(e.key==='Escape')doCloseModal();});
+window.addEventListener('beforeunload',function(){
+  doSaveLoc();
+  var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
+  fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload,keepalive:true}).catch(function(){});
+});
+
+setInterval(function(){doLoadCloud(false);},30000);
+setInterval(doRender,60000);
+
+doLoad();
+</script>
+</body>
+</html>
