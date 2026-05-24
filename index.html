@@ -124,6 +124,39 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 /* ── Toast ── */
 .tst{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f2347;color:#fff;padding:9px 22px;border-radius:24px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 6px 20px rgba(6,15,30,.3);letter-spacing:.02em}
 .tst.o{opacity:1}
+
+/* ── Заявки modal ── */
+.zov{display:none;position:fixed;inset:0;background:rgba(6,15,30,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px}
+.zov.o{display:flex}
+.zmb{background:#fff;border-radius:20px;padding:28px 28px 24px;width:100%;max-width:860px;box-shadow:0 32px 80px rgba(6,15,30,.28);border:1px solid #e8eef8;margin:auto}
+.zmh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.zmh h3{font-size:17px;font-weight:700;color:#0f2347;margin-bottom:2px}
+.zmh p{font-size:11px;color:#8a9dbf}
+.zcls{width:30px;height:30px;border-radius:8px;border:1.5px solid #e4e9f5;background:#fafbfe;cursor:pointer;font-size:14px;color:#6b7fa3;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s,color .12s;padding:0;line-height:1}
+.zcls:hover{background:#fff1f2;border-color:#fecaca;color:#ef4444}
+.zdrop{border:2px dashed #ccd8ef;border-radius:14px;padding:26px 20px;text-align:center;cursor:pointer;background:#f8faff;transition:border-color .15s,background .15s;margin-bottom:20px}
+.zdrop:hover,.zdrop.hover{border-color:#3b82f6;background:#eff6ff}
+.zdrop.zloaded{border-color:#16a34a;border-style:solid;background:#f0fdf4}
+#zDropTxt{font-size:13px;font-weight:600;color:#3d5282;margin-top:10px}
+.zdrop-sub{font-size:11px;color:#94a3b8;margin-top:5px}
+.zrow{display:flex;gap:16px;margin-bottom:20px;align-items:flex-end;flex-wrap:wrap}
+.zinp-block{display:flex;flex-direction:column;gap:6px}
+.zinp-block.br{flex:1;min-width:120px}
+.zinp-block.br .zinp{width:100%}
+.zl{font-size:9.5px;color:#6b7fa3;font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:8px}
+.zdti{display:flex;gap:6px}
+.zinp{font-size:12px;border:1.5px solid #e4e9f5;border-radius:8px;padding:7px 10px;outline:none;background:#fafbfe;color:#0f2347;font-family:'Inter',system-ui,sans-serif;transition:border-color .15s,background .15s}
+.zinp:focus{border-color:#3b82f6;background:#f0f6ff}
+input[type=date].zinp{width:136px}
+input[type=time].zinp{width:95px}
+.zbtng{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px}
+.zbtn{padding:10px 6px;border-radius:10px;border:1.5px solid #e4e9f5;background:#fafbfe;color:#4a5568;cursor:pointer;font-size:10.5px;font-weight:600;text-align:center;transition:all .15s;font-family:'Inter',system-ui,sans-serif;line-height:1.4;min-height:52px;display:flex;align-items:center;justify-content:center;white-space:pre-line}
+.zbtn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+.zbtn.za{border-color:#3b82f6;background:#dbeafe;color:#1d4ed8;box-shadow:0 0 0 2px rgba(59,130,246,.22)}
+.zfire-wrap{text-align:center;padding-top:6px}
+.zfire{padding:13px 52px;border-radius:50px;border:none;background:linear-gradient(135deg,#b91c1c,#dc2626,#f97316);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',system-ui,sans-serif;letter-spacing:.05em;box-shadow:0 4px 22px rgba(220,38,38,.4);transition:opacity .15s,box-shadow .15s,transform .12s}
+.zfire:hover{opacity:.92;box-shadow:0 6px 30px rgba(220,38,38,.5);transform:translateY(-1px)}
+.zfire:active{transform:translateY(0)}
 </style>
 </head>
 <body>
@@ -147,6 +180,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
   <label class="tb">📂 Импорт
     <input type="file" accept=".json" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" onchange="doImport(event)"/>
   </label>
+  <button class="tb" onclick="doOpenZ()">📋 Заявки</button>
 </div>
 <div class="wrap">
   <div class="card">
@@ -172,6 +206,58 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
   </div>
 </div>
 <div class="tst" id="tst"></div>
+
+<!-- Заявки modal -->
+<div class="zov" id="zov" onclick="if(event.target===this)doCloseZ()">
+  <div class="zmb">
+    <div class="zmh">
+      <div>
+        <h3>Генерація заявок</h3>
+        <p>Завантажте XL шаблон, вкажіть дату та причал, оберіть типи заявок</p>
+      </div>
+      <button class="zcls" onclick="doCloseZ()">✕</button>
+    </div>
+    <div id="zDrop" class="zdrop"
+         ondragover="event.preventDefault();this.classList.add('hover')"
+         ondragleave="this.classList.remove('hover')"
+         ondrop="zDropEvt(event)"
+         onclick="document.getElementById('zFile').click()">
+      <input type="file" id="zFile" accept=".xlsm,.xlsx,.xls" style="display:none" onchange="zLoadFile(event.target.files[0])"/>
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg>
+      <div id="zDropTxt">Перетащите XL шаблон сюда или нажмите для выбора</div>
+      <div class="zdrop-sub">.xlsm &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .xls</div>
+    </div>
+    <div class="zrow">
+      <div class="zinp-block">
+        <label class="zl">Дата заявки</label>
+        <div class="zdti">
+          <input type="date" id="zDate" class="zinp"/>
+          <input type="time" id="zTime" class="zinp"/>
+        </div>
+      </div>
+      <div class="zinp-block br">
+        <label class="zl">Причал</label>
+        <input type="text" id="zBerth" class="zinp" placeholder="Номер причала" maxlength="30"/>
+      </div>
+    </div>
+    <label class="zl">Тип заявки</label>
+    <div class="zbtng">
+      <button class="zbtn" id="zbtn0" onclick="zToggle(0)">Букс Бласт&#10;прих</button>
+      <button class="zbtn" id="zbtn1" onclick="zToggle(1)">Букс Бласт&#10;отход</button>
+      <button class="zbtn" id="zbtn2" onclick="zToggle(2)">Букс порт&#10;прих</button>
+      <button class="zbtn" id="zbtn3" onclick="zToggle(3)">Букс порт&#10;отх</button>
+      <button class="zbtn" id="zbtn4" onclick="zToggle(4)">Шварт ТБТ&#10;прих</button>
+      <button class="zbtn" id="zbtn5" onclick="zToggle(5)">Шварт ТБТ&#10;отход</button>
+      <button class="zbtn" id="zbtn6" onclick="zToggle(6)">Шварт Адм&#10;прих</button>
+      <button class="zbtn" id="zbtn7" onclick="zToggle(7)">Шварт Адм&#10;отход</button>
+      <button class="zbtn" id="zbtn8" onclick="zToggle(8)">Зняття&#10;порт</button>
+      <button class="zbtn" id="zbtn9" onclick="zToggle(9)">Зняття&#10;митн</button>
+    </div>
+    <div class="zfire-wrap">
+      <button class="zfire" onclick="doFire()">🔥 ОГОНЬ</button>
+    </div>
+  </div>
+</div>
 
 <script>
 var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
@@ -565,6 +651,195 @@ setInterval(function(){doLoadCloud(false);},30000);
 setInterval(doRender,60000);
 
 doLoad();
+
+/* ── Заявки ── */
+var ZTABS=[
+  {k:'Букс бласт прих'},
+  {k:'Букс бласт отход'},
+  {k:'Букс порт прих'},
+  {k:'Букс порт отх'},
+  {k:'Шварт ТБТ прих'},
+  {k:'Шварт ТБТ отход'},
+  {k:'Шварт Адм прих'},
+  {k:'Шварт Адм отход'},
+  {k:'Зняття порт'},
+  {k:'Зняття митн'}
+];
+var ZS={wb:null,sel:[]};
+
+function doOpenZ(){document.getElementById('zov').classList.add('o');}
+function doCloseZ(){document.getElementById('zov').classList.remove('o');}
+
+function zDropEvt(e){
+  e.preventDefault();
+  document.getElementById('zDrop').classList.remove('hover');
+  var f=e.dataTransfer.files[0];
+  if(f)zLoadFile(f);
+}
+
+function zLoadFile(f){
+  if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{
+      ZS.wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      document.getElementById('zDropTxt').textContent='✓ '+f.name;
+      document.getElementById('zDrop').classList.add('zloaded');
+      doToast('✓ Шаблон завантажено: '+f.name);
+    }catch(ex){doToast('Помилка файлу: '+ex.message,4000);}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function zToggle(i){
+  var k=ZTABS[i].k;
+  var idx=ZS.sel.indexOf(k);
+  if(idx>=0)ZS.sel.splice(idx,1);else ZS.sel.push(k);
+  document.getElementById('zbtn'+i).classList.toggle('za',ZS.sel.indexOf(k)>=0);
+}
+
+function zCell(ws,ref,val){
+  if(!ws)return;
+  if(!ws[ref])ws[ref]={};
+  var s=String(val!==null&&val!==undefined?val:'');
+  ws[ref].v=s;ws[ref].w=s;ws[ref].t='s';
+  delete ws[ref].f;delete ws[ref].r;delete ws[ref].h;
+}
+
+function zFmtDate(d){
+  if(!d)return'';
+  var p=d.split('-');
+  return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:d;
+}
+
+function zEval(formula,dv){
+  if(!formula)return null;
+  try{
+    var f=formula.trim();
+    if(/^CONCATENATE\(/i.test(f)){
+      return zConcatArgs(f.slice(12,-1),dv);
+    }
+    if(/^DATA![A-Z]+\d+$/.test(f)){
+      var r=f.slice(5);
+      return dv[r]!==undefined?String(dv[r]):'';
+    }
+    var expr=f
+      .replace(/UPPER\(DATA!([A-Z]+\d+)\)/gi,function(_,r){
+        return JSON.stringify(dv[r]!==undefined?String(dv[r]).toUpperCase():'');
+      })
+      .replace(/DATA!([A-Z]+\d+)/g,function(_,r){
+        return JSON.stringify(dv[r]!==undefined?String(dv[r]):'');
+      })
+      .replace(/&/g,'+');
+    return Function('"use strict";return('+expr+')')();
+  }catch(e){return null;}
+}
+
+function zConcatArgs(inner,dv){
+  var args=[],depth=0,inStr=false,cur='',i=0;
+  while(i<inner.length){
+    var ch=inner[i];
+    if(inStr){
+      if(ch==='"'){
+        if(inner[i+1]==='"'){cur+=ch+inner[i+1];i+=2;continue;}
+        else{cur+=ch;inStr=false;}
+      }else{cur+=ch;}
+    }else{
+      if(ch==='"'){inStr=true;cur+=ch;}
+      else if(ch==='('){depth++;cur+=ch;}
+      else if(ch===')'){depth--;cur+=ch;}
+      else if(ch===','&&depth===0){args.push(cur.trim());cur='';i++;continue;}
+      else{cur+=ch;}
+    }
+    i++;
+  }
+  if(cur.trim())args.push(cur.trim());
+  return args.map(function(a){
+    a=a.trim();
+    if(/^UPPER\(DATA!([A-Z]+\d+)\)$/i.test(a)){
+      var r=a.match(/DATA!([A-Z]+\d+)/i)[1];
+      return dv[r]?String(dv[r]).toUpperCase():'';
+    }
+    if(/^DATA!([A-Z]+\d+)$/.test(a)){
+      return dv[a.slice(5)]!==undefined?String(dv[a.slice(5)]):'';
+    }
+    if(a.startsWith('"')&&a.endsWith('"')){
+      return a.slice(1,-1).replace(/""/g,'"');
+    }
+    return a;
+  }).join('');
+}
+
+function doFire(){
+  if(!ZS.wb){doToast('⚠️ Завантажте XL шаблон');return;}
+  if(!ZS.sel.length){doToast('⚠️ Виберіть тип заявки');return;}
+  var date=document.getElementById('zDate').value;
+  var time=document.getElementById('zTime').value;
+  var berth=document.getElementById('zBerth').value.trim();
+  var dUA=zFmtDate(date);
+  var dws=ZS.wb.Sheets['DATA'];
+  if(dws){
+    if(dUA){
+      ['G2','H2','G4','H4','G6','G7','H7'].forEach(function(r){zCell(dws,r,dUA);});
+    }
+    if(time){
+      ['G5','H5','G8','H8','G9','H9'].forEach(function(r){zCell(dws,r,time);});
+    }
+    if(berth){
+      zCell(dws,'E37',berth);
+      zCell(dws,'B37',berth);
+    }
+  }
+  var dv={};
+  if(dws){
+    Object.keys(dws).forEach(function(r){
+      if(r[0]!=='!')dv[r]=dws[r].v!==undefined?dws[r].v:'';
+    });
+  }
+  ZS.sel.forEach(function(key,i){
+    setTimeout(function(){zGenerate(key,dv);},i*750);
+  });
+}
+
+function zGenerate(sheetName,dv){
+  var ws=ZS.wb.Sheets[sheetName];
+  if(!ws){doToast('⚠️ Аркуш "'+sheetName+'" не знайдено');return;}
+  var wc={};
+  Object.keys(ws).forEach(function(r){
+    if(r[0]==='!')wc[r]=ws[r];
+    else wc[r]=Object.assign({},ws[r]);
+  });
+  Object.keys(wc).forEach(function(r){
+    if(r[0]==='!'||!wc[r].f)return;
+    var val=zEval(wc[r].f,dv);
+    if(val!==null){
+      wc[r].v=val;wc[r].w=String(val);wc[r].t='s';
+      delete wc[r].f;
+    }
+  });
+  var rawHtml=XLSX.utils.sheet_to_html(wc,{editable:false});
+  var tblMatch=rawHtml.match(/<table[\s\S]*<\/table>/i);
+  var tbl=tblMatch?tblMatch[0]:rawHtml;
+  var pw=window.open('','_blank','width=960,height=820');
+  if(!pw){doToast('⚠️ Дозвольте спливаючі вікна у браузері');return;}
+  pw.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+sheetName+'</title><style>');
+  pw.document.write('*{box-sizing:border-box;margin:0;padding:0}');
+  pw.document.write('body{font-family:Arial,sans-serif;font-size:10pt;padding:10mm;background:#fff}');
+  pw.document.write('table{border-collapse:collapse;width:100%;font-size:8.5pt}');
+  pw.document.write('td,th{border:1px solid #999;padding:3px 5px;vertical-align:top;word-break:break-word}');
+  pw.document.write('@page{size:A4 portrait;margin:12mm}');
+  pw.document.write('@media print{.np{display:none}body{padding:0}}');
+  pw.document.write('</style></head><body>');
+  pw.document.write('<div class="np" style="margin-bottom:14px;padding:10px 16px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;display:flex;gap:10px;align-items:center">');
+  pw.document.write('<span style="font-size:13px;font-weight:700;color:#0f2347;flex:1">'+sheetName+'</span>');
+  pw.document.write('<button onclick="window.print()" style="padding:7px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial">💾 Зберегти як PDF</button>');
+  pw.document.write('<button onclick="window.close()" style="padding:7px 14px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:7px;cursor:pointer;font-size:12px;font-family:Arial">Закрити</button>');
+  pw.document.write('</div>');
+  pw.document.write(tbl);
+  pw.document.write('</body></html>');
+  pw.document.close();
+  pw.focus();
+}
 </script>
 </body>
 </html>
