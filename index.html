@@ -180,8 +180,6 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 <script>
 var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
 var KEY='vd1';
-var JBURL='https://api.jsonbin.io/v3/b/6a0b8b67ee5a733b12df2777';
-var JBKEY='$2a$10$oLuUpIsaitxUZlA4zrzNuOJ2V6toW0lKTcV38tN5GBVIJaDxlS3Xa';
 var GSURL='https://script.google.com/macros/s/AKfycbw6DDHBjSdLMHJgNGF-7gVzWroJDXIDXYW1qEKZAzgXrvHkT7xN4eai-iO4s7OCuJvxnw/exec';
 var MC=[
   {bg:'#eef3ff',bo:'#c5d4f7',lb:'Январь'},{bg:'#f3eeff',bo:'#d4c5f7',lb:'Февраль'},
@@ -240,32 +238,21 @@ function doSaveLoc(){
 function doSaveCloud(onDone){
   setSyncDot('busy');
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
-  // Сохраняем в JSONbin
-  fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload})
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  var fd=new FormData();
+  fd.append('data',payload);
+  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
     cloudRetry=0;setSyncDot('ok');doSaveLoc();
     if(onDone)onDone(true);
-    // Параллельно тихо в GS
-    doSaveToGSSilent(payload);
   })
   .catch(function(){
     cloudRetry++;setSyncDot('err');
-    // JSONbin упал — пробуем хотя бы GS
-    doSaveToGSSilent(payload);
     if(cloudRetry<=5){setTimeout(function(){doSaveCloud(onDone);},3000);}
-    else{cloudRetry=0;if(onDone)onDone(false);}
+    else{doToast('⚠️ Ошибка сохранения',4000);cloudRetry=0;if(onDone)onDone(false);}
   });
 }
 
-// Тихое фоновое сохранение в GS
-function doSaveToGSSilent(payload){
-  var fd=new FormData();
-  fd.append('data',payload);
-  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'}).catch(function(){});
-}
-
-// Кнопка "GS" — явное сохранение с подтверждением
+// Кнопка "GS" — принудительное сохранение
 function doSaveToGS(){
   var btn=document.getElementById('btnGS');
   if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
@@ -301,50 +288,23 @@ function doLoad(){
       }
     }catch(e){}
   }
-  // Первый запуск — грузим из Google Sheets, потом JSONbin как fallback
   setSyncDot('busy');
-  fetch(GSURL)
+  fetch(GSURL,{method:'GET'})
   .then(function(r){if(!r.ok)throw new Error('GS HTTP '+r.status);return r.json();})
   .then(function(d){
     if(d&&d.vessels&&d.vessels.length>0){
       V=d.vessels.map(function(v){return Object.assign(newV(),v);});
       S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
-    }else{
-      return fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
-        .then(function(r){return r.json();})
-        .then(function(d2){
-          if(d2&&d2.vessels&&d2.vessels.length>0){
-            V=d2.vessels.map(function(v){return Object.assign(newV(),v);});
-            S=d2.state||{};doSaveLoc();doRender();setSyncDot('ok');
-          }else{doLoadInitial();}
-        });
-    }
+    }else{doLoadInitial();}
   })
-  .catch(function(){
-    // GS не ответил — пробуем JSONbin
-    fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d&&d.vessels&&d.vessels.length>0){
-        V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-        S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
-      }else{doLoadInitial();}
-    })
-    .catch(function(){doLoadInitial();setSyncDot('err');});
-  });
+  .catch(function(){doLoadInitial();setSyncDot('err');});
 }
 
 function doLoadCloud(showToast){
-  // Сначала Google Sheets, при ошибке — JSONbin
-  fetch(GSURL)
+  fetch(GSURL,{method:'GET'})
   .then(function(r){if(!r.ok)throw new Error('GS');return r.json();})
   .then(function(d){applyCloudData(d,showToast);})
-  .catch(function(){
-    fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
-    .then(function(r){return r.json();})
-    .then(function(d){applyCloudData(d,showToast);})
-    .catch(function(){});
-  });
+  .catch(function(){});
 }
 
 function applyCloudData(d,showToast){
@@ -361,25 +321,15 @@ function applyCloudData(d,showToast){
 
 function doManualRefresh(){
   setSyncDot('busy');
-  fetch(GSURL)
-  .then(function(r){if(!r.ok)throw new Error('GS HTTP '+r.status);return r.json();})
+  fetch(GSURL,{method:'GET'})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(function(d){
     if(!d||!d.vessels)throw new Error('нет данных');
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
     S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
     doToast('✅ Обновлено из Google Sheets');
   })
-  .catch(function(){
-    fetch(JBURL+'/latest',{headers:{'X-Master-Key':JBKEY,'X-Bin-Meta':false}})
-    .then(function(r){if(!r.ok)throw new Error('JB HTTP '+r.status);return r.json();})
-    .then(function(d){
-      if(!d||!d.vessels)throw new Error('нет данных');
-      V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-      S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
-      doToast('✅ Обновлено из JSONbin (резерв)');
-    })
-    .catch(function(e){setSyncDot('err');doToast('⚠️ Не удалось обновить: '+e.message,4000);});
-  });
+  .catch(function(e){setSyncDot('err');doToast('⚠️ Не удалось обновить: '+e.message,4000);});
 }
 
 function doLoadInitial(){
@@ -638,7 +588,7 @@ window.addEventListener('beforeunload',function(){
   fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload,keepalive:true}).catch(function(){});
 });
 
-setInterval(function(){doLoadCloud(false);},30000);
+setInterval(function(){doLoadCloud(false);},5000);
 setInterval(doRender,60000);
 
 doLoad();
