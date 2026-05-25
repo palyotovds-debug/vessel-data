@@ -273,7 +273,7 @@ function doSaveToGS(){
 function doSave(){
   doSaveLoc();
   clearTimeout(cloudQueue);
-  cloudQueue=setTimeout(function(){doSaveCloud();},600);
+  cloudQueue=setTimeout(function(){doSaveCloud();},200);
 }
 
 function doLoad(){
@@ -588,7 +588,7 @@ window.addEventListener('beforeunload',function(){
   fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload,keepalive:true}).catch(function(){});
 });
 
-setInterval(function(){doLoadCloud(false);},5000);
+setInterval(function(){doLoadCloud(false);},3000);
 setInterval(doRender,60000);
 
 doLoad();
