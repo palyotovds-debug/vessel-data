@@ -182,7 +182,7 @@ var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clea
 var KEY='vd1';
 var JBURL='https://api.jsonbin.io/v3/b/6a0b8b67ee5a733b12df2777';
 var JBKEY='$2a$10$oLuUpIsaitxUZlA4zrzNuOJ2V6toW0lKTcV38tN5GBVIJaDxlS3Xa';
-var GSURL='https://script.google.com/macros/s/AKfycbwrjg0uifprm24RVg1kS_j1qJsBTj38685vO1IcrPOhhObGTB8QHZQI-Tvv9mOHH9gFAA/exec';
+var GSURL='https://script.google.com/macros/s/AKfycbw6DDHBjSdLMHJgNGF-7gVzWroJDXIDXYW1qEKZAzgXrvHkT7xN4eai-iO4s7OCuJvxnw/exec';
 var MC=[
   {bg:'#eef3ff',bo:'#c5d4f7',lb:'Январь'},{bg:'#f3eeff',bo:'#d4c5f7',lb:'Февраль'},
   {bg:'#ffeef5',bo:'#f7c5dc',lb:'Март'},{bg:'#fff4ee',bo:'#f7d9c5',lb:'Апрель'},
@@ -258,10 +258,11 @@ function doSaveCloud(onDone){
   });
 }
 
-// Тихое фоновое сохранение в GS (no-cors, без подтверждения)
+// Тихое фоновое сохранение в GS
 function doSaveToGSSilent(payload){
-  var url=GSURL+'?data='+encodeURIComponent(payload);
-  fetch(url,{method:'GET',mode:'no-cors'}).catch(function(){});
+  var fd=new FormData();
+  fd.append('data',payload);
+  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'}).catch(function(){});
 }
 
 // Кнопка "GS" — явное сохранение с подтверждением
@@ -269,8 +270,9 @@ function doSaveToGS(){
   var btn=document.getElementById('btnGS');
   if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
-  var url=GSURL+'?data='+encodeURIComponent(payload);
-  fetch(url,{method:'GET',mode:'no-cors'})
+  var fd=new FormData();
+  fd.append('data',payload);
+  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
     doToast('✅ Данные отправлены в Google Sheets');
     if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
