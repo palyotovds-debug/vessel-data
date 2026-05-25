@@ -142,6 +142,10 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
     Обновить
     <span class="sync-dot" id="syncDot"></span>
   </button>
+  <button class="tb" id="btnGS" onclick="doSaveToGS()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    GS
+  </button>
   <button class="tb" onclick="doExportJSON()">💾 JSON</button>
   <button class="tb" onclick="doExportXL()">📊 XL</button>
   <label class="tb">📂 Импорт
@@ -178,7 +182,7 @@ var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clea
 var KEY='vd1';
 var JBURL='https://api.jsonbin.io/v3/b/6a0b8b67ee5a733b12df2777';
 var JBKEY='$2a$10$oLuUpIsaitxUZlA4zrzNuOJ2V6toW0lKTcV38tN5GBVIJaDxlS3Xa';
-var GSURL='https://script.google.com/macros/s/AKfycbzVahP5QGmjNTRvukuG2CXabmpJ4I91UgawX1kzS6JXq5IpQDqXjX2s149usEGB2h6Pow/exec';
+var GSURL='https://script.google.com/macros/s/AKfycbwrjg0uifprm24RVg1kS_j1qJsBTj38685vO1IcrPOhhObGTB8QHZQI-Tvv9mOHH9gFAA/exec';
 var MC=[
   {bg:'#eef3ff',bo:'#c5d4f7',lb:'Январь'},{bg:'#f3eeff',bo:'#d4c5f7',lb:'Февраль'},
   {bg:'#ffeef5',bo:'#f7c5dc',lb:'Март'},{bg:'#fff4ee',bo:'#f7d9c5',lb:'Апрель'},
@@ -236,27 +240,44 @@ function doSaveLoc(){
 function doSaveCloud(onDone){
   setSyncDot('busy');
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
-
-  // Сохраняем в Google Sheets (основное)
-  var gsSave=fetch(GSURL,{method:'POST',body:payload})
-    .then(function(r){if(!r.ok)throw new Error('GS HTTP '+r.status);return r.json();})
-    .then(function(d){if(!d.ok)throw new Error('GS error');return true;});
-
-  // Сохраняем в JSONbin (резервное, не блокирует)
-  var jbSave=fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload})
-    .then(function(r){if(!r.ok)throw new Error('JB HTTP '+r.status);return r.json();})
-    .then(function(){return true;})
-    .catch(function(){return false;}); // JSONbin падает — не страшно
-
-  gsSave.then(function(){
+  // Сохраняем в JSONbin
+  fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(function(){
     cloudRetry=0;setSyncDot('ok');doSaveLoc();
     if(onDone)onDone(true);
-    // JSONbin тоже пробуем, но тихо
-    jbSave.catch(function(){});
-  }).catch(function(){
+    // Параллельно тихо в GS
+    doSaveToGSSilent(payload);
+  })
+  .catch(function(){
     cloudRetry++;setSyncDot('err');
+    // JSONbin упал — пробуем хотя бы GS
+    doSaveToGSSilent(payload);
     if(cloudRetry<=5){setTimeout(function(){doSaveCloud(onDone);},3000);}
-    else{doToast('⚠️ Ошибка сохранения Google Sheets',4000);cloudRetry=0;if(onDone)onDone(false);}
+    else{cloudRetry=0;if(onDone)onDone(false);}
+  });
+}
+
+// Тихое фоновое сохранение в GS (no-cors, без подтверждения)
+function doSaveToGSSilent(payload){
+  var url=GSURL+'?data='+encodeURIComponent(payload);
+  fetch(url,{method:'GET',mode:'no-cors'}).catch(function(){});
+}
+
+// Кнопка "GS" — явное сохранение с подтверждением
+function doSaveToGS(){
+  var btn=document.getElementById('btnGS');
+  if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
+  var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
+  var url=GSURL+'?data='+encodeURIComponent(payload);
+  fetch(url,{method:'GET',mode:'no-cors'})
+  .then(function(){
+    doToast('✅ Данные отправлены в Google Sheets');
+    if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
+  })
+  .catch(function(){
+    doToast('⚠️ Ошибка отправки в Google Sheets',4000);
+    if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
   });
 }
 
