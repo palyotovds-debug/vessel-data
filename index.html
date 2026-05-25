@@ -27,7 +27,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#eef2fa;min-height:100v
 
 /* ── Layout ── */
 .wrap{padding:18px}
-.card{background:#fff;border-radius:16px;border:1px solid #e2e8f5;overflow:hidden;box-shadow:0 4px 24px rgba(0,20,60,.07),0 1px 4px rgba(0,0,0,.04)}
+.card{background:#fff;border-radius:16px;border:1px solid #e2e8f5;box-shadow:0 4px 24px rgba(0,20,60,.07),0 1px 4px rgba(0,0,0,.04)}
 
 /* ── Search bar ── */
 .sb{padding:10px 14px;border-bottom:1px solid #edf1f9;background:#fafbfe;display:flex;align-items:center;gap:10px}
@@ -40,7 +40,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#eef2fa;min-height:100v
 .gw{overflow-x:auto}
 table{border-collapse:collapse;width:100%}
 th,td{border:1px solid #edf1f9}
-th.cn{width:155px;min-width:140px;background:#f7f9fe;padding:10px 12px;font-size:8.5px;color:#8a9dbf;font-weight:700;text-align:left;vertical-align:bottom;position:sticky;left:0;z-index:3;text-transform:uppercase;letter-spacing:.09em;box-shadow:inset -2px 0 0 #edf1f9}
+th.cn{width:155px;min-width:140px;background:#f7f9fe;padding:10px 12px;font-size:8.5px;color:#8a9dbf;font-weight:700;text-align:left;vertical-align:bottom;position:sticky;left:0;z-index:6;text-transform:uppercase;letter-spacing:.09em;box-shadow:inset -2px 0 0 #edf1f9}
 th.etah{width:115px;min-width:105px;padding:9px 6px 7px;font-size:8.5px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;letter-spacing:.05em;text-transform:uppercase}
 th.dh{width:60px;min-width:60px;padding:9px 4px 7px;font-size:8px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;word-break:break-word;text-transform:uppercase;letter-spacing:.03em}
 th.xh{width:32px;min-width:32px;background:#f7f9fe;border-left:2px solid #edf1f9}
@@ -390,7 +390,7 @@ function doXL(e,i){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
   r.onload=function(le){
-    try{if(typeof XLSX==='undefined'){doToast('XLSX недоступен');return;}var wb=XLSX.read(new Uint8Array(le.target.result),{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});var n=0;rows.forEach(function(row){var lbl=String(row[0]||'').trim().toLowerCase().replace(/\s+/g,' ');if(!FMAP[lbl])return;var col=FMAP_COL2[lbl]?2:1;var val=String(row[col]||'').trim();if(!val)return;if(FMAP[lbl]==='name'&&V[i].name)return;V[i][FMAP[lbl]]=val;n++;});if(n>0){doRender();doSave();doToast('✓ '+n+' полей');}else doToast('Поля не найдены');}catch(ex){doToast('Ошибка: '+ex.message);}
+    try{if(typeof XLSX==='undefined'){doToast('XLSX недоступен');return;}var wb=XLSX.read(new Uint8Array(le.target.result),{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});var n=0;rows.forEach(function(row){var lbl=String(row[0]||'').trim().toLowerCase().replace(/\s+/g,' ');if(!FMAP[lbl])return;if(FMAP[lbl]==='berth')return;var col=FMAP_COL2[lbl]?2:1;var val=String(row[col]||'').trim();if(!val)return;if(FMAP[lbl]==='name'&&V[i].name)return;V[i][FMAP[lbl]]=val;n++;});if(n>0){doRender();doSave();doToast('✓ '+n+' полей');}else doToast('Поля не найдены');}catch(ex){doToast('Ошибка: '+ex.message);}
   };
   r.readAsArrayBuffer(f);
 }
@@ -572,6 +572,7 @@ function doRender(){
   }
 
   h+='</tbody>';t.innerHTML=h;
+  setTimeout(initFloatHead,50);
 }
 
 function doTick(ve,de){var v=decodeURIComponent(ve),d=decodeURIComponent(de);S[sk(v,d)]=!gs(v,d);doRender();doSave();}
@@ -590,6 +591,50 @@ window.addEventListener('beforeunload',function(){
 
 setInterval(function(){doLoadCloud(false);},3000);
 setInterval(doRender,60000);
+
+// Плавающая шапка таблицы при скролле
+var floatHead=null;
+function initFloatHead(){
+  if(floatHead){floatHead.remove();floatHead=null;}
+  var tbl=document.getElementById('tbl');
+  if(!tbl)return;
+  var thead=tbl.querySelector('thead');
+  if(!thead)return;
+  var gw=tbl.closest('.gw');
+  var topbar=document.querySelector('.topbar');
+  var sb=document.querySelector('.sb');
+  if(!gw||!topbar||!sb)return;
+
+  floatHead=document.createElement('div');
+  floatHead.style.cssText='position:fixed;left:0;right:0;z-index:50;overflow:hidden;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,20,60,.1)';
+  var cloneTable=document.createElement('table');
+  cloneTable.style.cssText='border-collapse:collapse;width:100%;table-layout:fixed';
+  var cloneThead=thead.cloneNode(true);
+  cloneTable.appendChild(cloneThead);
+  floatHead.appendChild(cloneTable);
+  document.body.appendChild(floatHead);
+
+  function onScroll(){
+    var offset=topbar.offsetHeight;
+    var gwRect=gw.getBoundingClientRect();
+    var theadRect=thead.getBoundingClientRect();
+    floatHead.style.top=offset+'px';
+    floatHead.style.left=gwRect.left+'px';
+    floatHead.style.width=gwRect.width+'px';
+    cloneTable.style.marginLeft=(-gw.scrollLeft)+'px';
+    cloneTable.style.width=tbl.offsetWidth+'px';
+    if(theadRect.bottom<offset&&gwRect.bottom>offset){
+      floatHead.style.display='block';
+    }else{
+      floatHead.style.display='none';
+    }
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  gw.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll,{passive:true});
+  onScroll();
+}
+setTimeout(initFloatHead,400);
 
 doLoad();
 </script>
