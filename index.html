@@ -149,11 +149,47 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 .xlc-footer{display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #f1f5f9}
 .xlc-empty{color:#c8d4e4;font-size:11px;text-align:center;padding:20px;font-style:italic}
 
+/* ── Login screen ── */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0f1f35,#1a3a6a);z-index:999;display:flex;align-items:center;justify-content:center}
+#loginScreen.hidden{display:none}
+.login-box{background:#fff;border-radius:20px;padding:36px 32px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:20px;align-items:center}
+.login-logo{width:56px;height:56px;background:linear-gradient(135deg,#0f1f35,#1a3a6a);border-radius:14px;display:flex;align-items:center;justify-content:center}
+.login-title{font-size:18px;font-weight:700;color:#0f2347;text-align:center}
+.login-sub{font-size:12px;color:#94a3b8;text-align:center;margin-top:-12px}
+.login-field{width:100%;display:flex;flex-direction:column;gap:6px}
+.login-field label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.login-input{width:100%;padding:10px 14px;font-size:14px;border:1.5px solid #e2e8f5;border-radius:10px;outline:none;color:#0f2347;font-family:inherit;transition:border-color .15s;box-sizing:border-box}
+.login-input:focus{border-color:#3b82f6}
+.login-btn{width:100%;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#1a3a6a,#2456a4);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
+.login-btn:hover{opacity:.88}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{font-size:11px;color:#ef4444;text-align:center;min-height:16px}
+
 .tst{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f2347;color:#fff;padding:9px 22px;border-radius:24px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 6px 20px rgba(6,15,30,.3);letter-spacing:.02em}
 .tst.o{opacity:1}
 </style>
 </head>
 <body>
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+        <line x1="50" y1="10" x2="50" y2="52" stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <rect x="34" y="38" width="32" height="16" rx="3" fill="white" opacity="0.9"/>
+        <circle cx="42" cy="46" r="3" fill="#1a3557"/><circle cx="52" cy="46" r="3" fill="#1a3557"/><circle cx="62" cy="46" r="3" fill="#1a3557"/>
+        <path d="M18 54 L26 72 L74 72 L82 54 Z" fill="white" opacity="0.95"/>
+      </svg>
+    </div>
+    <div class="login-title">VESSEL DATA</div>
+    <div class="login-sub">Port Agency Document Tracker</div>
+    <div class="login-field">
+      <label>Пароль</label>
+      <input type="password" class="login-input" id="loginPass" placeholder="Введите пароль" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Войти</button>
+  </div>
+</div>
 <div class="topbar">
   <div class="ti">
     <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
@@ -250,7 +286,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 <script>
 var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clearance','DATA FOR DOCS','Pre-stowage plan','Terminal Inquiry','Port clearance (від АМПУ)','Нотіс про готовність','XL'];
 var KEY='vd1';
-var GSURL='https://script.google.com/macros/s/AKfycbw6DDHBjSdLMHJgNGF-7gVzWroJDXIDXYW1qEKZAzgXrvHkT7xN4eai-iO4s7OCuJvxnw/exec';
+var GSURL='https://script.google.com/macros/s/AKfycbz750b3_SFtD5foQbZj_wN5E_8ixXW_rDLdKrSjfp-dV14cIPtY1kLB_TPbvOhpMiykWA/exec';
 var MC=[
   {bg:'#eef3ff',bo:'#c5d4f7',lb:'Январь'},{bg:'#f3eeff',bo:'#d4c5f7',lb:'Февраль'},
   {bg:'#ffeef5',bo:'#f7c5dc',lb:'Март'},{bg:'#fff4ee',bo:'#f7d9c5',lb:'Апрель'},
@@ -985,7 +1021,52 @@ function initFloatHead(){
 }
 setTimeout(initFloatHead,400);
 
-doLoad();
+// ── Авторизация ──
+var AUTH_KEY='vd_auth';
+
+function doCheckAuth(){
+  try{
+    var saved=localStorage.getItem(AUTH_KEY);
+    if(saved){
+      var d=JSON.parse(saved);
+      // Сессия 24 часа
+      if(d.ts&&Date.now()-d.ts<24*60*60*1000){doHideLogin();return;}
+    }
+  }catch(e){}
+  setTimeout(function(){document.getElementById('loginPass').focus();},100);
+}
+
+function doLogin(){
+  var pass=document.getElementById('loginPass').value.trim();
+  var btn=document.getElementById('loginBtn');
+  var err=document.getElementById('loginErr');
+  if(!pass){err.textContent='Введите пароль';return;}
+  btn.disabled=true;btn.textContent='Проверяем...';err.textContent='';
+  fetch(GSURL+'?action=checkpass&pass='+encodeURIComponent(pass))
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){
+      try{localStorage.setItem(AUTH_KEY,JSON.stringify({ts:Date.now()}));}catch(e){}
+      doHideLogin();
+    }else{
+      err.textContent='Неверный пароль';
+      btn.disabled=false;btn.textContent='Войти';
+      document.getElementById('loginPass').value='';
+      document.getElementById('loginPass').focus();
+    }
+  })
+  .catch(function(){
+    err.textContent='Ошибка соединения, попробуйте ещё раз';
+    btn.disabled=false;btn.textContent='Войти';
+  });
+}
+
+function doHideLogin(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  doLoad();
+}
+
+doCheckAuth();
 </script>
 </body>
 </html>
