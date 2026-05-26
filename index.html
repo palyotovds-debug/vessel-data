@@ -41,12 +41,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#eef2fa;min-height:100v
 table{border-collapse:collapse;width:100%}
 th,td{border:1px solid #edf1f9}
 th.cn{width:155px;min-width:140px;background:#f7f9fe;padding:10px 12px;font-size:8.5px;color:#8a9dbf;font-weight:700;text-align:left;vertical-align:bottom;position:sticky;left:0;z-index:6;text-transform:uppercase;letter-spacing:.09em;box-shadow:inset -2px 0 0 #edf1f9}
-th.etah{width:115px;min-width:105px;padding:9px 6px 7px;font-size:8.5px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;letter-spacing:.05em;text-transform:uppercase}
-th.dh{width:60px;min-width:60px;padding:9px 4px 7px;font-size:8px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;word-break:break-word;text-transform:uppercase;letter-spacing:.03em}
-th.xh{width:32px;min-width:32px;background:#f7f9fe;border-left:2px solid #edf1f9}
+th.etah{width:75px;min-width:75px;max-width:75px;padding:9px 4px 7px;font-size:8px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;letter-spacing:.05em;text-transform:uppercase}
+th.dh{width:75px;min-width:75px;max-width:75px;padding:9px 4px 7px;font-size:8px;font-weight:700;text-align:center;color:#8a9dbf;background:#f7f9fe;line-height:1.3;vertical-align:bottom;word-break:break-word;text-transform:uppercase;letter-spacing:.03em}
+th.xh{width:32px;min-width:32px;max-width:32px;background:#f7f9fe;border-left:2px solid #edf1f9}
 
 td.vc{position:sticky;left:0;z-index:2;border-right:2px solid #edf1f9;width:155px;min-width:140px;padding:0;vertical-align:top}
-td.etac{width:115px;min-width:105px;padding:0;vertical-align:middle}
+td.etac{width:75px;min-width:75px;max-width:75px;padding:0;vertical-align:middle}
+td.cc{width:75px;min-width:75px;max-width:75px;padding:0;text-align:center;vertical-align:middle;cursor:pointer;user-select:none}
+td.xc{width:32px;min-width:32px;max-width:32px;padding:0;text-align:center;vertical-align:middle;border-left:2px solid #edf1f9}
 
 /* ── ETA cell ── */
 .eta-cell{min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 8px;cursor:pointer;gap:2px;transition:background .13s}
@@ -66,10 +68,12 @@ td.etac{width:115px;min-width:105px;padding:0;vertical-align:middle}
 .vn{font-size:11px;font-weight:700;color:#0f2347;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px}
 .ar{font-size:7px;color:#c0ccdf;transition:transform .2s,color .2s;display:inline-block;flex-shrink:0}
 .ar.o{transform:rotate(90deg);color:#3b82f6}
-.vs{font-size:8.5px;font-weight:600;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 6px;border-radius:4px;display:inline-block;width:fit-content;letter-spacing:.01em}
+.vs{font-size:8.5px;font-weight:600;margin-top:1px;white-space:nowrap;padding:1px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;width:fit-content;letter-spacing:.01em}
 .vs.s{color:#059669;background:#d1fae5}
 .vs.b{color:#1d4ed8;background:#dbeafe}
 .vs.a{color:#b45309;background:#fef3c7}
+.sail-plus{border:none;background:transparent;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;transition:opacity .15s;flex-shrink:0;position:relative;top:-1px}
+.sail-plus:hover{opacity:.7}
 
 /* ── Vessel details ── */
 .vd{display:none;padding:10px 12px 12px;border-top:1px solid #edf1f9}
@@ -97,8 +101,10 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 .xl input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 
 /* ── Delete button ── */
-.db{position:absolute;top:4px;right:4px;width:17px;height:17px;border-radius:50%;border:1px solid #e4eaf4;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#c0cce0;padding:0;line-height:0;transition:background .15s,border-color .15s,color .15s}
+.db{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;border:1px solid #e4eaf4;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#c0cce0;padding:0;line-height:0;transition:background .15s,border-color .15s,color .15s}
 .db:hover{background:#fff1f2;border-color:#fecaca;color:#ef4444}
+.sail-plus{border:none;background:transparent;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:opacity .15s;margin-top:2px}
+.sail-plus:hover{opacity:.7}
 
 /* ── Section / month headers ── */
 .shr td,.mhr td{font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;user-select:none;letter-spacing:.08em;transition:filter .12s}
@@ -175,6 +181,20 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
     </div>
   </div>
 </div>
+<div class="ov" id="sailModal" onclick="if(event.target===this)doCloseSailModal()">
+  <div class="mb" style="max-width:460px">
+    <h3>Sailing Data</h3>
+    <p>Вставьте текст — данные разберутся автоматически</p>
+    <textarea id="sailText" style="width:100%;height:160px;font-size:11px;border:1.5px solid #e2e6f0;border-radius:8px;padding:8px 10px;outline:none;resize:vertical;font-family:monospace;color:#1d2939" placeholder="SAILING DATA&#10;Vessel sailed from Chornomorsk port&#10;25.05.2026 at 15:50 LT..."></textarea>
+    <div id="sailPreview" style="margin-top:8px;display:none;background:#f7f9fe;border-radius:8px;padding:8px 10px;font-size:10px;color:#4a5568;line-height:1.8"></div>
+    <div class="ma" style="margin-top:10px">
+      <button class="bn" onclick="doCloseSailModal()">Отмена</button>
+      <button class="bn" style="background:#f1f5f9;color:#475569" onclick="doParseSailPreview()">👁 Проверить</button>
+      <button class="bn p" onclick="doConfirmSail()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div class="tst" id="tst"></div>
 
 <script>
@@ -201,7 +221,7 @@ var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circ
 var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
 var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 
-function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
+function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
 function sk(n,d){return n+'|||'+d;}
 function gs(n,d){return!!S[sk(n,d)];}
 function ec(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -444,8 +464,20 @@ function renderVesselRow(v,isSailed){
   h+='<td class="vc" style="background:'+vcBg+';border-color:'+vcBo+'">';
   h+='<div class="vw"><div class="vm" style="background:'+vcBg+'" onclick="doTogExp('+ri+')">';
   h+='<div class="vi"><span class="vn"><span class="ar'+(op?' o':'')+'">▶</span> '+ec(v.name)+'</span>';
-  if(s){h+='<span class="vs '+s.c+'" data-ek="'+ec(ek)+'">'+ec(s.t)+'</span>';}
-  h+='</div></div><button class="db" onclick="doDel('+ri+')">'+SVG_DEL+'</button></div>';
+  if(s){
+    h+='<span class="vs '+s.c+'" data-ek="'+ec(ek)+'">';
+    h+=ec(s.t);
+    if(isSailed){
+      var SVG_PLUS='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round"/></svg>';
+      h+=' <button class="sail-plus" onclick="doOpenSailModal('+ri+')" title="Sailing Data">'+SVG_PLUS+'</button>';
+    }
+    h+='</span>';
+  }else if(isSailed){
+    var SVG_PLUS2='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    h+='<button class="sail-plus" onclick="doOpenSailModal('+ri+')" title="Sailing Data">'+SVG_PLUS2+'</button>';
+  }
+  h+='</div></div>';
+  h+='<button class="db" onclick="doDel('+ri+')">'+SVG_DEL+'</button></div>';
   if(op){
     var url=v.imo?'https://www.marinetraffic.com/en/ais/details/ships/imo:'+v.imo:'https://www.marinetraffic.com/en/ais/index/search/all/keyword:'+encodeURIComponent(v.name);
     h+='<div class="vd o" style="background:'+vcBg+'"><div class="dg">';
@@ -459,40 +491,53 @@ function renderVesselRow(v,isSailed){
   }
   h+='</td>';
 
-  h+='<td class="etac" style="background:'+cellBg+';border-color:'+cellBo+'">';
-  if(etaEditRow===ri){
-    h+='<div class="eta-inputs">';
-    h+='<input type="date" class="eta-date" data-i="'+ri+'" data-f="etaswa" value="'+(v.etaswa||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
-    h+='<input type="time" class="eta-time" data-i="'+ri+'" data-f="etaswatime" value="'+(v.etaswatime||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
-    h+='</div>';
-  }else{
-    var etaContent;
-    if(v.etaswa){
-      etaContent='<span class="eta-disp">'+ec(fmtD(v.etaswa))+'</span>'+(v.etaswatime?'<span class="eta-time-val">'+ec(v.etaswatime)+'</span>':'');
-    }else{
-      etaContent='<span class="eta-ph">—</span>';
+  if(isSailed){
+    var SAIL_FIELDS=[
+      {k:'sailedAt',  w:'75px'},
+      {k:'sailCargo', w:'75px'},
+      {k:'sailQty',   w:'75px'},
+      {k:'sailDrafts',w:'75px'},
+      {k:'sailSF',    w:'75px'},
+      {k:'sailBLstatus',w:'75px'},
+      {k:'sailBLdate',w:'75px'}
+    ];
+    SAIL_FIELDS.forEach(function(f){
+      var val=v[f.k]||'';
+      h+='<td style="background:'+cellBg+';border:1px solid '+cellBo+';padding:0;width:'+f.w+';min-width:'+f.w+';max-width:'+f.w+';cursor:pointer;overflow:hidden" onclick="doSailCellEdit(this,'+ri+',\''+f.k+'\')">';
+      var displayVal=val?ec(val).replace(/\n/g,'<br>'):'—';
+      h+='<div style="padding:3px 6px;font-size:10px;font-weight:'+(val?'600':'400')+';color:'+(val?'#1d2939':'#c8cdd8')+';text-align:center;white-space:normal;word-break:break-word;min-height:22px;line-height:1.4">'+displayVal+'</div>';
+      h+='</td>';
+    });
+    var remaining=DOCS.length+2-SAIL_FIELDS.length;
+    if(remaining>0){
+      h+='<td colspan="'+remaining+'" style="background:'+cellBg+';border:1px solid '+cellBo+'"></td>';
     }
-    h+='<div class="eta-cell" onclick="doEtaOpen('+ri+')" title="Нажмите для редактирования">'+etaContent+'</div>';
-  }
-  h+='</td>';
-
-  DOCS.forEach(function(d){
-    if(isSailed){
-      h+='<td class="cc" style="background:'+cellBg+';border-color:'+cellBo+'"><div class="tw"></div></td>';
+    h+='</tr>';
+  }else{
+    h+='<td class="etac" style="background:'+cellBg+';border-color:'+cellBo+'">';
+    if(etaEditRow===ri){
+      h+='<div class="eta-inputs">';
+      h+='<input type="date" class="eta-date" data-i="'+ri+'" data-f="etaswa" value="'+(v.etaswa||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
+      h+='<input type="time" class="eta-time" data-i="'+ri+'" data-f="etaswatime" value="'+(v.etaswatime||'')+'" onchange="doSetEtaSwa(this)" onblur="doEtaBlur('+ri+')">';
+      h+='</div>';
     }else{
+      var etaContent;
+      if(v.etaswa){
+        etaContent='<span class="eta-disp">'+ec(fmtD(v.etaswa))+'</span>'+(v.etaswatime?'<span class="eta-time-val">'+ec(v.etaswatime)+'</span>':'');
+      }else{
+        etaContent='<span class="eta-ph">—</span>';
+      }
+      h+='<div class="eta-cell" onclick="doEtaOpen('+ri+')" title="Нажмите для редактирования">'+etaContent+'</div>';
+    }
+    h+='</td>';
+    DOCS.forEach(function(d){
       var ok=gs(ek,d);
       h+='<td class="cc" style="background:'+tickBg+';border-color:'+tickBo+'" onclick="doTick(\''+encodeURIComponent(ek)+'\',\''+encodeURIComponent(d)+'\')">';
       h+='<div class="tw">'+(ok?SVG_CHECK:SVG_CROSS)+'</div></td>';
-    }
-  });
-
-  if(isSailed){
-    h+='<td class="xc" style="background:'+cellBg+';border-color:'+cellBo+'"></td>';
-  }else{
+    });
     h+='<td class="xc" style="background:'+tickBg+';border-color:'+tickBo+'"><label class="xl">'+SVG_UPL+'<input type="file" accept=".xlsx,.xlsm,.xls" onchange="doXL(event,'+ri+')"/></label></td>';
+    h+='</tr>';
   }
-
-  h+='</tr>';
   return h;
 }
 
@@ -557,13 +602,28 @@ function doRender(){
         if(mki!==lk){
           lk=mki;
           if(mc){
+        var SAIL_COLS=[
+          {l:'SAILED',    w:'75px'},
+          {l:'CARGO',     w:'75px'},
+          {l:'QTY',       w:'75px'},
+          {l:'DRAFTS',    w:'75px'},
+          {l:'SF',        w:'75px'},
+          {l:'BL STATUS', w:'75px'},
+          {l:'BL DATE',   w:'75px'}
+        ];
             var isCol=!!COLLAPSED[mki];
             var mCount=sailed.filter(function(x){return getMK(x)===mki;}).length;
             h+='<tr class="mhr" onclick="doToggleMonth(\''+mki+'\')">';
-            h+='<td colspan="'+ncols+'" style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';color:#64748b">';
+            h+='<td style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';color:#64748b;position:sticky;left:0;z-index:2;padding:5px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">';
             h+=(isCol?'▶ ':'▼ ')+ec(getML(v));
             h+='<span style="margin-left:8px;font-size:9px;font-weight:400;opacity:.7">'+mCount+' '+(mCount===1?'судно':mCount<5?'судна':'судов')+'</span>';
-            h+='</td></tr>';
+            h+='</td>';
+            SAIL_COLS.forEach(function(sc){
+              h+='<td style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';padding:4px 6px;font-size:8px;font-weight:700;color:#475569;text-align:center;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;width:'+sc.w+';min-width:'+sc.w+';max-width:'+sc.w+'">'+sc.l+'</td>';
+            });
+            var rem2=DOCS.length+2-SAIL_COLS.length;
+            if(rem2>0){h+='<td colspan="'+rem2+'" style="background:'+mc.bg+';border-top:2px solid '+mc.bo+'"></td>';}
+            h+='</tr>';
           }
         }
         if(!mc||!COLLAPSED[mki]){h+=renderVesselRow(v,true);}
@@ -575,8 +635,107 @@ function doRender(){
   setTimeout(initFloatHead,50);
 }
 
+function doSailCellEdit(td,i,field){
+  // Если уже редактируется — не открывать снова
+  if(td.querySelector('input'))return;
+  var val=V[i][field]||'';
+  var w=Math.max(td.offsetWidth,90);
+  td.innerHTML='<input type="text" value="'+ec(val)+'" style="width:100%;box-sizing:border-box;padding:3px 7px;font-size:10px;font-weight:600;color:#1d2939;border:none;outline:2px solid #3b82f6;background:#eff6ff;text-align:center;min-width:'+w+'px" />';
+  var inp=td.querySelector('input');
+  inp.focus();inp.select();
+  function save(){
+    V[i][field]=inp.value.trim();
+    doSave();doRender();
+  }
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){inp.blur();}
+    if(e.key==='Escape'){doRender();}
+  });
+}
+function doOpenSailModal(i){
+  sailModalIdx=i;
+  document.getElementById('sailText').value='';
+  document.getElementById('sailPreview').style.display='none';
+  document.getElementById('sailModal').classList.add('o');
+  setTimeout(function(){document.getElementById('sailText').focus();},60);
+}
+function doCloseSailModal(){
+  var modal=document.getElementById('sailModal');
+  modal.classList.remove('o');
+  sailModalIdx=-1;
+  // Блокируем клики на 200мс чтобы закрытие не провалилось на строку судна
+  modal.style.pointerEvents='none';
+  setTimeout(function(){modal.style.pointerEvents='';},200);
+}
+
+function parseSailText(txt){
+  var res={sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:''};
+
+  // SAILED — дата и время: дд.мм.гггг at чч:мм → "дд.мм.гггг\nчч:мм"
+  var mSail=txt.match(/(\d{2}\.\d{2}\.\d{4})\s+at\s+(\d{2}:\d{2})/i);
+  if(mSail)res.sailedAt=mSail[1]+'\n'+mSail[2];
+
+  // CARGO + QTY — берём груз и число сразу после "Cargo loaded on board:"
+  var mCargoQty=txt.match(/cargo loaded on board[:\s]*([\s\S]+?)(\d[\d\u0027\u2019,.]*\d\.\d+|\d+)\s*mt/i);
+  if(mCargoQty){
+    // Из полного названия берём ключевое слово груза
+    var fullCargo=mCargoQty[1].trim();
+    var stopWords=['ukrainian','russian','belarusian','moldovan','romanian','bulgarian','in','bulk','meal','seeds','seed','new','old','crop','origin','bagged','loose'];
+    var words=fullCargo.split(/\s+/);
+    var key=words.filter(function(w){return !stopWords.includes(w.toLowerCase())&&w.length>2;});
+    res.sailCargo=key.length>0?key[0]:words[0];
+    res.sailQty=mCargoQty[2].trim();
+  }
+
+  // DRAFTS — Fore/Aft
+  var mDraft=txt.match(/fore\s*[-–:]\s*([\d.]+)\s*m[;\s,]+aft\s*[-–:]\s*([\d.]+)\s*m/i);
+  if(mDraft)res.sailDrafts=mDraft[1]+'/'+mDraft[2];
+
+  // SF — число перед cuft
+  var mSF=txt.match(/([\d.]+)\s*cuft/i);
+  if(mSF)res.sailSF=mSF[1];
+
+  // BL STATUS — FREIGHT PREPAID или FREIGHT PAYABLE
+  var mBL=txt.match(/FREIGHT\s+(PREPAID|PAYABLE)/i);
+  if(mBL)res.sailBLstatus='FREIGHT '+mBL[1].toUpperCase();
+
+  // BL DATE — дата после "Date of OBsL"
+  var mBLd=txt.match(/date of ob[^\n]*[\r\n]+([\d]{2}\.[\d]{2}\.[\d]{4})/i);
+  if(!mBLd)mBLd=txt.match(/date of ob[sl]+[:\s]*([\d]{2}\.[\d]{2}\.[\d]{4})/i);
+  if(mBLd)res.sailBLdate=mBLd[1].trim();
+
+  return res;
+}
+
+function doParseSailPreview(){
+  var txt=document.getElementById('sailText').value;
+  var p=parseSailText(txt);
+  var labels={sailedAt:'SAILED',sailCargo:'CARGO',sailQty:'QTY',sailDrafts:'DRAFTS',sailSF:'SF',sailBLstatus:'BL STATUS',sailBLdate:'BL DATE'};
+  var html='';
+  Object.keys(labels).forEach(function(k){
+    html+='<b>'+labels[k]+':</b> '+(p[k]||'<span style="color:#f43f5e">не найдено</span>')+'<br>';
+  });
+  var prev=document.getElementById('sailPreview');
+  prev.innerHTML=html;prev.style.display='block';
+}
+
+function doConfirmSail(){
+  if(sailModalIdx<0)return;
+  var txt=document.getElementById('sailText').value.trim();
+  if(!txt){doToast('Вставьте текст');return;}
+  var p=parseSailText(txt);
+  Object.assign(V[sailModalIdx],p);
+  doCloseSailModal();doRender();doSave();
+  doToast('✅ Sailing data сохранена');
+}
+
 function doTick(ve,de){var v=decodeURIComponent(ve),d=decodeURIComponent(de);S[sk(v,d)]=!gs(v,d);doRender();doSave();}
-function doTogExp(i){var v=V[i];EX[v.name+'|||'+v.addedDate]=!EX[v.name+'|||'+v.addedDate];doRender();}
+function doTogExp(i){
+  // Не открываем карточку если sail modal открыт
+  if(document.getElementById('sailModal').classList.contains('o'))return;
+  var v=V[i];EX[v.name+'|||'+v.addedDate]=!EX[v.name+'|||'+v.addedDate];doRender();
+}
 function doToggleMonth(mki){COLLAPSED[mki]=!COLLAPSED[mki];doRender();}
 function doDel(i){var v=V[i];if(!confirm('Удалить "'+v.name+'"?'))return;var ek=v.name+'|||'+v.addedDate;DOCS.forEach(function(d){delete S[sk(ek,d)];});V.splice(i,1);delete EX[ek];doRender();doSave();doToast('Судно удалено');}
 function doOpenModal(){document.getElementById('iName').value='';document.getElementById('iImo').value='';document.getElementById('modal').classList.add('o');setTimeout(function(){document.getElementById('iName').focus();},60);}
