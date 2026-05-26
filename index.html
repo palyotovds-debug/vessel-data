@@ -341,10 +341,13 @@ function doSaveLoc(){
   try{localStorage.setItem(KEY,JSON.stringify({vessels:V,state:S,ts:Date.now()}));}catch(e){}
 }
 
+var GSURL='https://script.google.com/macros/s/AKfycbzleH6aUlbZcKuaxcs7txpvKqv7hgyKo113Q9vN3tWlKqqJSMtFsA13p3dkHDnU6rWMZA/exec';
+
 function doSaveCloud(onDone){
   setSyncDot('busy');
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
   var fd=new FormData();
+  fd.append('action','save');
   fd.append('data',payload);
   fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
@@ -364,10 +367,11 @@ function doSaveToGS(){
   if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
   var fd=new FormData();
+  fd.append('action','save');
   fd.append('data',payload);
   fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
-    doToast('✅ Данные отправлены в Google Sheets');
+    doToast('✅ Данные сохранены в Google Sheets');
     if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
   })
   .catch(function(){
@@ -380,6 +384,27 @@ function doSave(){
   doSaveLoc();
   clearTimeout(cloudQueue);
   cloudQueue=setTimeout(function(){doSaveCloud();},200);
+}
+
+function gsLoad(cb){
+  var cbName='_gsLoad'+Date.now();
+  var script=document.createElement('script');
+  var done=false;
+  var timer=setTimeout(function(){
+    if(done)return;done=true;
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    cb(null);
+  },10000);
+  window[cbName]=function(d){
+    if(done)return;done=true;
+    clearTimeout(timer);
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    cb(d);
+  };
+  script.src=GSURL+'?action=load&callback='+cbName;
+  document.head.appendChild(script);
 }
 
 function doLoad(){
@@ -395,26 +420,20 @@ function doLoad(){
     }catch(e){}
   }
   setSyncDot('busy');
-  fetch(GSURL,{method:'GET'})
-  .then(function(r){if(!r.ok)throw new Error('GS HTTP '+r.status);return r.json();})
-  .then(function(d){
-    if(d&&d.vessels&&d.vessels.length>0){
+  gsLoad(function(d){
+    if(d&&d.ok&&d.vessels&&d.vessels.length>0){
       V=d.vessels.map(function(v){return Object.assign(newV(),v);});
       S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
     }else{doLoadInitial();}
-  })
-  .catch(function(){doLoadInitial();setSyncDot('err');});
+  });
 }
 
 function doLoadCloud(showToast){
-  fetch(GSURL,{method:'GET'})
-  .then(function(r){if(!r.ok)throw new Error('GS');return r.json();})
-  .then(function(d){applyCloudData(d,showToast);})
-  .catch(function(){});
+  gsLoad(function(d){applyCloudData(d,showToast);});
 }
 
 function applyCloudData(d,showToast){
-  if(!d||!d.vessels)return;
+  if(!d||!d.ok||!d.vessels)return;
   var remoteTs=d.ts||0,localTs=0;
   try{var loc=localStorage.getItem(KEY);if(loc){var lp=JSON.parse(loc);localTs=lp.ts||0;}}catch(e){}
   if(remoteTs>localTs){
@@ -427,16 +446,14 @@ function applyCloudData(d,showToast){
 
 function doManualRefresh(){
   setSyncDot('busy');
-  fetch(GSURL,{method:'GET'})
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-  .then(function(d){
-    if(!d||!d.vessels)throw new Error('нет данных');
+  gsLoad(function(d){
+    if(!d||!d.ok||!d.vessels){setSyncDot('err');doToast('⚠️ Не удалось обновить',4000);return;}
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
     S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
     doToast('✅ Обновлено из Google Sheets');
-  })
-  .catch(function(e){setSyncDot('err');doToast('⚠️ Не удалось обновить: '+e.message,4000);});
+  });
 }
+
 
 function doLoadInitial(){
   V=[{name:"GOLDEN EMAN",imo:"9576014",type:"BULK CARRIER",flag:"BARBADOS",class:"DBS",portreg:"BRIDGETOWN",cs:"8P2366",dw:"30346.60",grt:"18873",nrt:"10395",loa:"176.20",lbp:"168.73",boa:"26.00",dmd:"14.00",tsum:"10.06",owner:"GOLDEN EMAN SHIPTRADE LTD",holds:"5",volume:"38736.70",year:"2010",arr:"2026-05-20",dep:"",berth:"16",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"20.05.2026",mmsi:""},
