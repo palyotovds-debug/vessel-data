@@ -762,6 +762,7 @@ function doMaodClick(e,i){
     });
   },0);
 }
+function doSailCellEdit(td,i,field){
   // Если уже редактируется — не открывать снова
   if(td.querySelector('input'))return;
   var val=V[i][field]||'';
@@ -1083,10 +1084,27 @@ function doLogin(){
   var err=document.getElementById('loginErr');
   if(!pass){err.textContent='Введите пароль';return;}
   btn.disabled=true;btn.textContent='Проверяем...';err.textContent='';
-  fetch(GSURL+'?action=checkpass&pass='+encodeURIComponent(pass))
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(d.ok){
+
+  var cbName='_gsCheck'+Date.now();
+  var script=document.createElement('script');
+  var done=false;
+
+  var timer=setTimeout(function(){
+    if(done)return;
+    done=true;
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    err.textContent='Ошибка соединения, попробуйте ещё раз';
+    btn.disabled=false;btn.textContent='Войти';
+  },8000);
+
+  window[cbName]=function(d){
+    if(done)return;
+    done=true;
+    clearTimeout(timer);
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    if(d&&d.ok){
       try{localStorage.setItem(AUTH_KEY,JSON.stringify({ts:Date.now()}));}catch(e){}
       doHideLogin();
     }else{
@@ -1095,11 +1113,10 @@ function doLogin(){
       document.getElementById('loginPass').value='';
       document.getElementById('loginPass').focus();
     }
-  })
-  .catch(function(){
-    err.textContent='Ошибка соединения, попробуйте ещё раз';
-    btn.disabled=false;btn.textContent='Войти';
-  });
+  };
+
+  script.src=GSURL+'?action=checkpass&pass='+encodeURIComponent(pass)+'&callback='+cbName;
+  document.head.appendChild(script);
 }
 
 function doHideLogin(){
