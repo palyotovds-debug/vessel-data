@@ -307,7 +307,7 @@ var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circ
 var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
 var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 
-function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
+function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',maod:'',sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
 function sk(n,d){return n+'|||'+d;}
 function gs(n,d){return!!S[sk(n,d)];}
 function ec(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -577,6 +577,14 @@ function renderVesselRow(v,isSailed){
   }
   h+='</td>';
 
+  // MA/OD ячейка
+  var maodVal=v.maod||'';
+  var maodBg=maodVal==='MA'?'#dbeafe':maodVal==='OD'?'#dcfce7':cellBg;
+  var maodColor=maodVal==='MA'?'#1d4ed8':maodVal==='OD'?'#15803d':'#c8d4e4';
+  h+='<td style="background:'+maodBg+';border:1px solid '+cellBo+';width:50px;min-width:50px;max-width:50px;padding:0;text-align:center;vertical-align:middle;position:relative">';
+  h+='<div class="maod-cell" onclick="doMaodClick(event,'+ri+')" style="height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:700;color:'+maodColor+'">'+( maodVal||'—')+'</div>';
+  h+='</td>';
+
   if(isSailed){
     var SAIL_FIELDS=[
       {k:'sailedAt',  w:'75px'},
@@ -631,9 +639,9 @@ function doRender(){
   var q=(document.getElementById('fSrch').value||'').toLowerCase().trim();
   var filtered=q?V.filter(function(v){return v.name.toLowerCase().indexOf(q)!==-1;}):V;
   var t=document.getElementById('tbl');
-  var ncols=DOCS.length+3;
+  var ncols=DOCS.length+4;
 
-  var h='<thead><tr><th class="cn">Судно</th><th class="etah">ETA SWA</th>';
+  var h='<thead><tr><th class="cn">Судно</th><th class="dh" style="width:50px;min-width:50px;max-width:50px">MA/OD</th><th class="etah">ETA SWA</th>';
   DOCS.forEach(function(d){h+='<th class="dh">'+ec(d)+'</th>';});
   h+='<th class="xh"></th></tr></thead><tbody>';
 
@@ -721,7 +729,39 @@ function doRender(){
   setTimeout(initFloatHead,50);
 }
 
-function doSailCellEdit(td,i,field){
+function doMaodClick(e,i){
+  e.stopPropagation();
+  // Убираем старый dropdown если есть
+  var old=document.getElementById('maodDrop');
+  if(old){old.remove();if(parseInt(old.getAttribute('data-i'))===i)return;}
+  var td=e.currentTarget.closest('td');
+  var rect=td.getBoundingClientRect();
+  var drop=document.createElement('div');
+  drop.id='maodDrop';
+  drop.setAttribute('data-i',i);
+  drop.style.cssText='position:fixed;left:'+rect.left+'px;top:'+(rect.bottom+2)+'px;background:#fff;border:1.5px solid #e2e8f5;border-radius:8px;box-shadow:0 4px 16px rgba(0,20,60,.15);z-index:500;overflow:hidden;min-width:60px';
+  ['MA','OD','—'].forEach(function(opt){
+    var btn=document.createElement('div');
+    btn.textContent=opt;
+    btn.style.cssText='padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;color:'+(opt==='MA'?'#1d4ed8':opt==='OD'?'#15803d':'#94a3b8');
+    btn.onmouseenter=function(){this.style.background='#f7f9fe';}
+    btn.onmouseleave=function(){this.style.background='';}
+    btn.onclick=function(ev){
+      ev.stopPropagation();
+      V[i].maod=opt==='—'?'':opt;
+      drop.remove();doSave();doRender();
+    };
+    drop.appendChild(btn);
+  });
+  document.body.appendChild(drop);
+  // Закрываем при клике вне
+  setTimeout(function(){
+    document.addEventListener('click',function closeDrop(){
+      var d=document.getElementById('maodDrop');if(d)d.remove();
+      document.removeEventListener('click',closeDrop);
+    });
+  },0);
+}
   // Если уже редактируется — не открывать снова
   if(td.querySelector('input'))return;
   var val=V[i][field]||'';
@@ -860,6 +900,7 @@ var XLC_ALL_COLS=[
   {k:'owner',     l:'Owner'},
   {k:'cargo',     l:'Cargo'},
   {k:'cargoqty',  l:'Cargo Qty'},
+  {k:'maod',      l:'MA/OD'},
   {k:'etaswa',    l:'ETA SWA'},
   {k:'sailedAt',  l:'Sailed (date/time)'},
   {k:'sailCargo', l:'Sail Cargo'},
