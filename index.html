@@ -579,10 +579,9 @@ function renderVesselRow(v,isSailed){
 
   // MA/OD ячейка
   var maodVal=v.maod||'';
-  var maodBg=maodVal==='MA'?'#dbeafe':maodVal==='OD'?'#dcfce7':cellBg;
   var maodColor=maodVal==='MA'?'#1d4ed8':maodVal==='OD'?'#15803d':'#c8d4e4';
-  h+='<td style="background:'+maodBg+';border:1px solid '+cellBo+';width:50px;min-width:50px;max-width:50px;padding:0;text-align:center;vertical-align:middle;position:relative">';
-  h+='<div class="maod-cell" onclick="doMaodClick(event,'+ri+')" style="height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:700;color:'+maodColor+'">'+( maodVal||'—')+'</div>';
+  h+='<td style="background:'+cellBg+';border:1px solid '+cellBo+';width:50px;min-width:50px;max-width:50px;padding:0;text-align:center;vertical-align:middle;position:relative">';
+  h+='<div class="maod-cell" onclick="doMaodClick(event,'+ri+')" style="height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:700;color:'+maodColor+'">'+(maodVal||'—')+'</div>';
   h+='</td>';
 
   if(isSailed){
