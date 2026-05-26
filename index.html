@@ -594,6 +594,8 @@ function renderVesselRow(v,isSailed){
       {k:'sailBLstatus',w:'75px'},
       {k:'sailBLdate',w:'75px'}
     ];
+    // ETA ячейка пустая — не нужна для отправленных
+    // Sailing data ячейки (7 штук)
     SAIL_FIELDS.forEach(function(f){
       var val=v[f.k]||'';
       h+='<td style="background:'+cellBg+';border:1px solid '+cellBo+';padding:0;width:'+f.w+';min-width:'+f.w+';max-width:'+f.w+';cursor:pointer;overflow:hidden" onclick="doSailCellEdit(this,'+ri+',\''+f.k+'\')">';
@@ -601,7 +603,8 @@ function renderVesselRow(v,isSailed){
       h+='<div style="padding:3px 6px;font-size:10px;font-weight:'+(val?'600':'400')+';color:'+(val?'#1d2939':'#c8cdd8')+';text-align:center;white-space:normal;word-break:break-word;min-height:22px;line-height:1.4">'+displayVal+'</div>';
       h+='</td>';
     });
-    var remaining=DOCS.length+2-SAIL_FIELDS.length;
+    // Оставшиеся пустые ячейки (DOCS + XL - 7 sailing)
+    var remaining=DOCS.length+1-SAIL_FIELDS.length;
     if(remaining>0){
       h+='<td colspan="'+remaining+'" style="background:'+cellBg+';border:1px solid '+cellBo+'"></td>';
     }
@@ -707,14 +710,19 @@ function doRender(){
             var isCol=!!COLLAPSED[mki];
             var mCount=sailed.filter(function(x){return getMK(x)===mki;}).length;
             h+='<tr class="mhr" onclick="doToggleMonth(\''+mki+'\')">';
+            // Название месяца
             h+='<td style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';color:#64748b;position:sticky;left:0;z-index:2;padding:5px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">';
             h+=(isCol?'▶ ':'▼ ')+ec(getML(v));
             h+='<span style="margin-left:8px;font-size:9px;font-weight:400;opacity:.7">'+mCount+' '+(mCount===1?'судно':mCount<5?'судна':'судов')+'</span>';
             h+='</td>';
+            // MA/OD колонка
+            h+='<td style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';padding:4px 6px;font-size:8px;font-weight:700;color:#475569;text-align:center;text-transform:uppercase;letter-spacing:.04em;width:50px;min-width:50px;max-width:50px">MA/OD</td>';
+            // Sailing data заголовки
             SAIL_COLS.forEach(function(sc){
               h+='<td style="background:'+mc.bg+';border-top:2px solid '+mc.bo+';padding:4px 6px;font-size:8px;font-weight:700;color:#475569;text-align:center;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;width:'+sc.w+';min-width:'+sc.w+';max-width:'+sc.w+'">'+sc.l+'</td>';
             });
-            var rem2=DOCS.length+2-SAIL_COLS.length;
+            // Оставшиеся пустые
+            var rem2=DOCS.length+1-SAIL_COLS.length;
             if(rem2>0){h+='<td colspan="'+rem2+'" style="background:'+mc.bg+';border-top:2px solid '+mc.bo+'"></td>';}
             h+='</tr>';
           }
