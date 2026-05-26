@@ -341,13 +341,12 @@ function doSaveLoc(){
   try{localStorage.setItem(KEY,JSON.stringify({vessels:V,state:S,ts:Date.now()}));}catch(e){}
 }
 
-var GSURL='https://script.google.com/macros/s/AKfycbywIrnQLABfORLhYyCwwkHi1m3f9t5TX3fSKiDpKoPyDNAmsipgCxHRAL-sumlE9N5RXA/exec';
+var GSURL='https://script.google.com/macros/s/AKfycby2ipj5eyq_ox1dbxh2JoOp374MWxtK5wFGrkvMtnjmK441ChChRoN1T6t_AIvbwwPQ8A/exec';
 
 function doSaveCloud(onDone){
   setSyncDot('busy');
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
   var fd=new FormData();
-  fd.append('action','save');
   fd.append('data',payload);
   fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
@@ -367,7 +366,6 @@ function doSaveToGS(){
   if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
   var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
   var fd=new FormData();
-  fd.append('action','save');
   fd.append('data',payload);
   fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
@@ -403,7 +401,7 @@ function gsLoad(cb){
     delete window[cbName];
     cb(d);
   };
-  script.src=GSURL+'?action=load&callback='+cbName;
+  script.src=GSURL+'?callback='+cbName;
   document.head.appendChild(script);
 }
 
@@ -421,7 +419,7 @@ function doLoad(){
   }
   setSyncDot('busy');
   gsLoad(function(d){
-    if(d&&d.ok&&d.vessels&&d.vessels.length>0){
+    if(d&&d.vessels&&d.vessels.length>0){
       V=d.vessels.map(function(v){return Object.assign(newV(),v);});
       S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
     }else{doLoadInitial();}
@@ -433,7 +431,7 @@ function doLoadCloud(showToast){
 }
 
 function applyCloudData(d,showToast){
-  if(!d||!d.ok||!d.vessels)return;
+  if(!d||!d.vessels)return;
   var remoteTs=d.ts||0,localTs=0;
   try{var loc=localStorage.getItem(KEY);if(loc){var lp=JSON.parse(loc);localTs=lp.ts||0;}}catch(e){}
   if(remoteTs>localTs){
@@ -447,7 +445,7 @@ function applyCloudData(d,showToast){
 function doManualRefresh(){
   setSyncDot('busy');
   gsLoad(function(d){
-    if(!d||!d.ok||!d.vessels){setSyncDot('err');doToast('⚠️ Не удалось обновить',4000);return;}
+    if(!d||!d.vessels){setSyncDot('err');doToast('⚠️ Не удалось обновить',4000);return;}
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
     S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
     doToast('✅ Обновлено из Google Sheets');
