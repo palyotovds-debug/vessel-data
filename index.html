@@ -127,7 +127,28 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 .bn.p{background:linear-gradient(135deg,#1a3a6a,#2456a4);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(26,58,106,.35)}
 .bn.p:hover{opacity:.88;box-shadow:0 3px 14px rgba(26,58,106,.48)}
 
-/* ── Toast ── */
+/* ── XL Constructor ── */
+.xlc-ov{display:none;position:fixed;inset:0;background:rgba(10,20,40,.5);z-index:100;align-items:center;justify-content:center}
+.xlc-ov.o{display:flex}
+.xlc-box{background:#fff;border-radius:16px;padding:24px;width:640px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,20,60,.2)}
+.xlc-title{font-size:15px;font-weight:700;color:#0f2347}
+.xlc-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.xlc-cols{display:flex;gap:16px;flex:1;min-height:0}
+.xlc-panel{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+.xlc-panel-title{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.xlc-list{flex:1;overflow-y:auto;border:1.5px solid #e2e8f5;border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:4px;min-height:200px;max-height:320px}
+.xlc-item{padding:7px 10px;border-radius:7px;background:#f7f9fe;font-size:11px;font-weight:600;color:#1d2939;cursor:grab;display:flex;align-items:center;gap:8px;user-select:none;border:1.5px solid transparent;transition:background .12s,border-color .12s}
+.xlc-item:hover{background:#eff6ff;border-color:#bfdbfe}
+.xlc-item.dragging{opacity:.4}
+.xlc-item.drag-over{border-color:#3b82f6;background:#dbeafe}
+.xlc-item .xlc-grip{color:#c8d4e4;font-size:12px;flex-shrink:0}
+.xlc-item .xlc-remove{margin-left:auto;color:#c8d4e4;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0}
+.xlc-item .xlc-remove:hover{color:#ef4444}
+.xlc-add-btn{padding:5px 8px;border-radius:6px;background:#f1f5f9;border:none;font-size:10px;color:#475569;cursor:pointer;text-align:left;font-weight:600}
+.xlc-add-btn:hover{background:#e2e8f5}
+.xlc-footer{display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #f1f5f9}
+.xlc-empty{color:#c8d4e4;font-size:11px;text-align:center;padding:20px;font-style:italic}
+
 .tst{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f2347;color:#fff;padding:9px 22px;border-radius:24px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 6px 20px rgba(6,15,30,.3);letter-spacing:.02em}
 .tst.o{opacity:1}
 </style>
@@ -153,7 +174,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
     GS
   </button>
   <button class="tb" onclick="doExportJSON()">💾 JSON</button>
-  <button class="tb" onclick="doExportXL()">📊 XL</button>
+  <button class="tb" onclick="doOpenXLConstructor()">📊 XL</button>
   <label class="tb">📂 Импорт
     <input type="file" accept=".json" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" onchange="doImport(event)"/>
   </label>
@@ -191,6 +212,35 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
       <button class="bn" onclick="doCloseSailModal()">Отмена</button>
       <button class="bn" style="background:#f1f5f9;color:#475569" onclick="doParseSailPreview()">👁 Проверить</button>
       <button class="bn p" onclick="doConfirmSail()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="xlc-ov" id="xlcModal" onclick="if(event.target===this)doCloseXLConstructor()">
+  <div class="xlc-box">
+    <div>
+      <div class="xlc-title">📊 Конструктор Excel</div>
+      <div class="xlc-sub">Выберите колонки и перетащите в нужном порядке</div>
+    </div>
+    <div class="xlc-cols">
+      <div class="xlc-panel">
+        <div class="xlc-panel-title">Доступные колонки</div>
+        <div class="xlc-list" id="xlcAvail"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 4px">
+        <div style="color:#c8d4e4;font-size:20px">⇄</div>
+      </div>
+      <div class="xlc-panel">
+        <div class="xlc-panel-title">Выбранные колонки <span id="xlcCount" style="font-weight:400;opacity:.6"></span></div>
+        <div class="xlc-list" id="xlcSelected" ondragover="event.preventDefault()" ondrop="doXLCDrop(event)">
+          <div class="xlc-empty" id="xlcEmpty">Нажмите на колонку слева чтобы добавить</div>
+        </div>
+      </div>
+    </div>
+    <div class="xlc-footer">
+      <button class="bn" onclick="doCloseXLConstructor()">Отмена</button>
+      <button class="bn" onclick="doXLCReset()" style="color:#94a3b8">↺ Сбросить</button>
+      <button class="bn p" onclick="doXLCExport()">📥 Скачать XL</button>
     </div>
   </div>
 </div>
@@ -748,7 +798,147 @@ window.addEventListener('beforeunload',function(){
   fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload,keepalive:true}).catch(function(){});
 });
 
-setInterval(function(){doLoadCloud(false);},3000);
+// ── XL Constructor ──
+var XLC_ALL_COLS=[
+  {k:'name',      l:'Vessel Name'},
+  {k:'arr',       l:'ARR'},
+  {k:'dep',       l:'DEP'},
+  {k:'berth',     l:'Berth'},
+  {k:'imo',       l:'IMO'},
+  {k:'cs',        l:'Call Sign'},
+  {k:'flag',      l:'Flag'},
+  {k:'type',      l:'Type'},
+  {k:'class',     l:'Class'},
+  {k:'portreg',   l:'Port of Registry'},
+  {k:'dw',        l:'DW'},
+  {k:'grt',       l:'GRT'},
+  {k:'nrt',       l:'NRT'},
+  {k:'loa',       l:'LOA'},
+  {k:'lbp',       l:'LBP'},
+  {k:'boa',       l:'BOA'},
+  {k:'dmd',       l:'Dmd'},
+  {k:'tsum',      l:'T sum'},
+  {k:'holds',     l:'Holds'},
+  {k:'volume',    l:'Volume'},
+  {k:'year',      l:'Year Built'},
+  {k:'owner',     l:'Owner'},
+  {k:'cargo',     l:'Cargo'},
+  {k:'cargoqty',  l:'Cargo Qty'},
+  {k:'etaswa',    l:'ETA SWA'},
+  {k:'sailedAt',  l:'Sailed (date/time)'},
+  {k:'sailCargo', l:'Sail Cargo'},
+  {k:'sailQty',   l:'Sail QTY'},
+  {k:'sailDrafts',l:'Drafts'},
+  {k:'sailSF',    l:'SF'},
+  {k:'sailBLstatus',l:'BL Status'},
+  {k:'sailBLdate',l:'BL Date'},
+];
+var xlcSelected=[];
+var xlcDragKey=null;
+
+function doOpenXLConstructor(){
+  xlcSelected=xlcSelected.length?xlcSelected:[];
+  doXLCRenderAvail();
+  doXLCRenderSelected();
+  document.getElementById('xlcModal').classList.add('o');
+}
+function doCloseXLConstructor(){document.getElementById('xlcModal').classList.remove('o');}
+function doXLCReset(){xlcSelected=[];doXLCRenderAvail();doXLCRenderSelected();}
+
+function doXLCRenderAvail(){
+  var used=xlcSelected.map(function(c){return c.k;});
+  var avail=XLC_ALL_COLS.filter(function(c){return !used.includes(c.k);});
+  var el=document.getElementById('xlcAvail');
+  el.innerHTML=avail.map(function(c){
+    return '<button class="xlc-add-btn" onclick="doXLCAdd(\''+c.k+'\')">'
+      +'<span style="color:#94a3b8;margin-right:6px">+</span>'+c.l+'</button>';
+  }).join('');
+}
+
+function doXLCRenderSelected(){
+  var el=document.getElementById('xlcSelected');
+  var empty=document.getElementById('xlcEmpty');
+  document.getElementById('xlcCount').textContent=xlcSelected.length?'('+xlcSelected.length+')':'';
+  if(!xlcSelected.length){
+    el.innerHTML='<div class="xlc-empty">Нажмите на колонку слева чтобы добавить</div>';
+    return;
+  }
+  el.innerHTML=xlcSelected.map(function(c,i){
+    return '<div class="xlc-item" draggable="true" data-key="'+c.k+'"'
+      +' ondragstart="doXLCDragStart(event,\''+c.k+'\')"'
+      +' ondragover="event.preventDefault();this.classList.add(\'drag-over\')"'
+      +' ondragleave="this.classList.remove(\'drag-over\')"'
+      +' ondrop="doXLCDropOnItem(event,\''+c.k+'\')">'
+      +'<span class="xlc-grip">⠿</span>'
+      +'<span>'+c.l+'</span>'
+      +'<span class="xlc-remove" onclick="doXLCRemove(\''+c.k+'\')">×</span>'
+      +'</div>';
+  }).join('');
+}
+
+function doXLCAdd(k){
+  var col=XLC_ALL_COLS.find(function(c){return c.k===k;});
+  if(col&&!xlcSelected.find(function(c){return c.k===k;})){
+    xlcSelected.push(col);
+    doXLCRenderAvail();
+    doXLCRenderSelected();
+  }
+}
+function doXLCRemove(k){
+  xlcSelected=xlcSelected.filter(function(c){return c.k!==k;});
+  doXLCRenderAvail();doXLCRenderSelected();
+}
+function doXLCDragStart(e,k){xlcDragKey=k;e.currentTarget.classList.add('dragging');}
+function doXLCDrop(e){e.preventDefault();}
+function doXLCDropOnItem(e,targetKey){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!xlcDragKey||xlcDragKey===targetKey)return;
+  var fromIdx=xlcSelected.findIndex(function(c){return c.k===xlcDragKey;});
+  var toIdx=xlcSelected.findIndex(function(c){return c.k===targetKey;});
+  if(fromIdx<0||toIdx<0)return;
+  var item=xlcSelected.splice(fromIdx,1)[0];
+  xlcSelected.splice(toIdx,0,item);
+  xlcDragKey=null;
+  doXLCRenderSelected();
+}
+
+function doXLCExport(){
+  if(!xlcSelected.length){doToast('Выберите хотя бы одну колонку');return;}
+  // Заголовки
+  var headers=xlcSelected.map(function(c){return c.l;});
+  var rows=[headers];
+  // Данные — все суда
+  V.forEach(function(v){
+    var row=xlcSelected.map(function(c){
+      var val=v[c.k]||'';
+      // Форматируем даты
+      if((c.k==='arr'||c.k==='dep'||c.k==='etaswa'||c.k==='sailBLdate')&&val){
+        val=fmtD(val)||val;
+      }
+      return val;
+    });
+    rows.push(row);
+  });
+  // Генерируем XL
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  // Ширина колонок
+  ws['!cols']=xlcSelected.map(function(){return{wch:18};});
+  // Стиль заголовка
+  xlcSelected.forEach(function(c,i){
+    var ref=XLSX.utils.encode_cell({r:0,c:i});
+    if(ws[ref])ws[ref].s={fill:{fgColor:{rgb:'1A3557'}},font:{bold:true,sz:11,color:{rgb:'FFFFFF'}},alignment:{horizontal:'center'}};
+  });
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Vessels');
+  XLSX.writeFile(wb,'vessel-export-'+new Date().toISOString().slice(0,10)+'.xlsx',{cellStyles:true});
+  doToast('✓ Excel скачан');
+  doCloseXLConstructor();
+}
+
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('xlcModal').classList.contains('o')&&e.key==='Escape')doCloseXLConstructor();
+});
 setInterval(doRender,60000);
 
 // Плавающая шапка таблицы при скролле
