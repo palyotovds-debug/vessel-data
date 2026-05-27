@@ -170,7 +170,26 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 </style>
 </head>
 <body>
-<div id="loginScreen" style="display:none"></div>
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none">
+        <line x1="50" y1="10" x2="50" y2="52" stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <rect x="34" y="38" width="32" height="16" rx="3" fill="white" opacity="0.9"/>
+        <circle cx="42" cy="46" r="3" fill="#1a3557"/><circle cx="52" cy="46" r="3" fill="#1a3557"/><circle cx="62" cy="46" r="3" fill="#1a3557"/>
+        <path d="M18 54 L26 72 L74 72 L82 54 Z" fill="white" opacity="0.95"/>
+      </svg>
+    </div>
+    <div class="login-title">AGENCY PORTAL</div>
+    <div class="login-sub">Port Agency Document Tracker</div>
+    <div class="login-field">
+      <label>Пароль</label>
+      <input type="password" class="login-input" id="loginPass" placeholder="Введите пароль" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Войти</button>
+  </div>
+</div>
 <div class="topbar">
   <div class="ti">
     <svg width="20" height="20" viewBox="0 0 100 100" fill="none">
@@ -188,7 +207,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
   </button>
   <button class="tb" id="btnGS" onclick="doSaveToGS()">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-    SB
+    GS
   </button>
   <button class="tb" onclick="doExportJSON()">💾 JSON</button>
   <button class="tb" onclick="doOpenXLConstructor()">📊 XL</button>
@@ -322,74 +341,39 @@ function doSaveLoc(){
   try{localStorage.setItem(KEY,JSON.stringify({vessels:V,state:S,ts:Date.now()}));}catch(e){}
 }
 
-var SB_URL='https://jwszoqoselpjlxxnyumb.supabase.co';
-var SB_KEY='sb_publishable_IY0rLya2Be3ZAwTyATZQ-Q__TsTuc6f';
-
-function sbHeaders(){
-  return{
-    'Content-Type':'application/json',
-    'apikey':SB_KEY,
-    'Authorization':'Bearer '+SB_KEY,
-    'Prefer':'return=minimal'
-  };
-}
+var GSURL='https://script.google.com/macros/s/AKfycby2ipj5eyq_ox1dbxh2JoOp374MWxtK5wFGrkvMtnjmK441ChChRoN1T6t_AIvbwwPQ8A/exec';
 
 function doSaveCloud(onDone){
   setSyncDot('busy');
-  var ts=Date.now();
-
-  // 1. Сохраняем суда — сначала удаляем все, потом вставляем заново
-  var vessels=V.map(function(v,i){
-    var row=Object.assign({},v);
-    row.sort_order=i;
-    return row;
-  });
-
-  // Удаляем все суда
-  fetch(SB_URL+'/rest/v1/vessels?id=gte.0',{
-    method:'DELETE',headers:sbHeaders()
-  })
+  var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
+  var fd=new FormData();
+  fd.append('data',payload);
+  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
   .then(function(){
-    // Вставляем новые
-    return fetch(SB_URL+'/rest/v1/vessels',{
-      method:'POST',
-      headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
-      body:JSON.stringify(vessels)
-    });
-  })
-  .then(function(){
-    // Сохраняем галочки — удаляем все и вставляем заново
-    return fetch(SB_URL+'/rest/v1/doc_state?key=neq.null',{
-      method:'DELETE',headers:sbHeaders()
-    });
-  })
-  .then(function(){
-    var stateRows=Object.keys(S).filter(function(k){return S[k];}).map(function(k){return{key:k,value:true};});
-    if(!stateRows.length)return Promise.resolve();
-    return fetch(SB_URL+'/rest/v1/doc_state',{
-      method:'POST',
-      headers:sbHeaders(),
-      body:JSON.stringify(stateRows)
-    });
-  })
-  .then(function(){
-    // Сохраняем timestamp в localStorage
-    doSaveLoc();
-    cloudRetry=0;setSyncDot('ok');
+    cloudRetry=0;setSyncDot('ok');doSaveLoc();
     if(onDone)onDone(true);
   })
-  .catch(function(e){
+  .catch(function(){
     cloudRetry++;setSyncDot('err');
     if(cloudRetry<=5){setTimeout(function(){doSaveCloud(onDone);},3000);}
-    else{doToast('⚠️ Ошибка сохранения: '+e.message,4000);cloudRetry=0;if(onDone)onDone(false);}
+    else{doToast('⚠️ Ошибка сохранения',4000);cloudRetry=0;if(onDone)onDone(false);}
   });
 }
 
+// Кнопка "GS" — принудительное сохранение
 function doSaveToGS(){
   var btn=document.getElementById('btnGS');
   if(btn){btn.style.opacity='0.5';btn.style.pointerEvents='none';}
-  doSaveCloud(function(ok){
-    doToast(ok?'✅ Данные сохранены в Supabase':'⚠️ Ошибка сохранения',ok?2500:4000);
+  var payload=JSON.stringify({vessels:V,state:S,ts:Date.now()});
+  var fd=new FormData();
+  fd.append('data',payload);
+  fetch(GSURL,{method:'POST',body:fd,mode:'no-cors'})
+  .then(function(){
+    doToast('✅ Данные сохранены в Google Sheets');
+    if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
+  })
+  .catch(function(){
+    doToast('⚠️ Ошибка отправки в Google Sheets',4000);
     if(btn){btn.style.opacity='';btn.style.pointerEvents='';}
   });
 }
@@ -400,27 +384,25 @@ function doSave(){
   cloudQueue=setTimeout(function(){doSaveCloud();},200);
 }
 
-function sbLoad(cb){
-  // Загружаем суда
-  fetch(SB_URL+'/rest/v1/vessels?select=*&order=sort_order.asc',{
-    method:'GET',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-  })
-  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-  .then(function(vessels){
-    // Загружаем галочки
-    return fetch(SB_URL+'/rest/v1/doc_state?select=key,value',{
-      method:'GET',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    })
-    .then(function(r){return r.json();})
-    .then(function(stateRows){
-      var state={};
-      (stateRows||[]).forEach(function(row){if(row.value)state[row.key]=true;});
-      cb({vessels:vessels||[],state:state,ts:Date.now()});
-    });
-  })
-  .catch(function(e){cb(null);});
+function gsLoad(cb){
+  var cbName='_gsLoad'+Date.now();
+  var script=document.createElement('script');
+  var done=false;
+  var timer=setTimeout(function(){
+    if(done)return;done=true;
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    cb(null);
+  },10000);
+  window[cbName]=function(d){
+    if(done)return;done=true;
+    clearTimeout(timer);
+    if(script.parentNode)script.parentNode.removeChild(script);
+    delete window[cbName];
+    cb(d);
+  };
+  script.src=GSURL+'?callback='+cbName;
+  document.head.appendChild(script);
 }
 
 function doLoad(){
@@ -436,7 +418,7 @@ function doLoad(){
     }catch(e){}
   }
   setSyncDot('busy');
-  sbLoad(function(d){
+  gsLoad(function(d){
     if(d&&d.vessels&&d.vessels.length>0){
       V=d.vessels.map(function(v){return Object.assign(newV(),v);});
       S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
@@ -445,22 +427,28 @@ function doLoad(){
 }
 
 function doLoadCloud(showToast){
-  sbLoad(function(d){
-    if(!d||!d.vessels)return;
+  gsLoad(function(d){applyCloudData(d,showToast);});
+}
+
+function applyCloudData(d,showToast){
+  if(!d||!d.vessels)return;
+  var remoteTs=d.ts||0,localTs=0;
+  try{var loc=localStorage.getItem(KEY);if(loc){var lp=JSON.parse(loc);localTs=lp.ts||0;}}catch(e){}
+  if(remoteTs>localTs){
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
     S=d.state||{};doSaveLoc();doRender();
     if(showToast!==false)doToast('🔄 Данные синхронизированы');
     setSyncDot('ok');
-  });
+  }
 }
 
 function doManualRefresh(){
   setSyncDot('busy');
-  sbLoad(function(d){
+  gsLoad(function(d){
     if(!d||!d.vessels){setSyncDot('err');doToast('⚠️ Не удалось обновить',4000);return;}
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
     S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
-    doToast('✅ Обновлено из Supabase');
+    doToast('✅ Обновлено из Google Sheets');
   });
 }
 
@@ -1158,7 +1146,7 @@ function doHideLogin(){
   doLoad();
 }
 
-doLoad();
+doCheckAuth();
 </script>
 </body>
 </html>
