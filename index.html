@@ -336,30 +336,29 @@ function sbHeaders(){
 
 function doSaveCloud(onDone){
   setSyncDot('busy');
-  var ts=Date.now();
 
-  // 1. Сохраняем суда — сначала удаляем все, потом вставляем заново
   var vessels=V.map(function(v,i){
-    var row=Object.assign({},v);
+    var row={};
+    // Копируем только поля нашей модели, без id
+    Object.keys(newV()).forEach(function(k){row[k]=v[k]!==undefined?v[k]:'';});
     row.sort_order=i;
     return row;
   });
 
   // Удаляем все суда
-  fetch(SB_URL+'/rest/v1/vessels?id=gte.0',{
+  fetch(SB_URL+'/rest/v1/vessels?name=neq.XXXXNOTEXIST',{
     method:'DELETE',headers:sbHeaders()
   })
   .then(function(){
-    // Вставляем новые
+    if(!vessels.length)return Promise.resolve();
     return fetch(SB_URL+'/rest/v1/vessels',{
       method:'POST',
-      headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
+      headers:sbHeaders(),
       body:JSON.stringify(vessels)
     });
   })
   .then(function(){
-    // Сохраняем галочки — удаляем все и вставляем заново
-    return fetch(SB_URL+'/rest/v1/doc_state?key=neq.null',{
+    return fetch(SB_URL+'/rest/v1/doc_state?key=neq.XXXXNOTEXIST',{
       method:'DELETE',headers:sbHeaders()
     });
   })
@@ -373,7 +372,6 @@ function doSaveCloud(onDone){
     });
   })
   .then(function(){
-    // Сохраняем timestamp в localStorage
     doSaveLoc();
     cloudRetry=0;setSyncDot('ok');
     if(onDone)onDone(true);
@@ -401,14 +399,12 @@ function doSave(){
 }
 
 function sbLoad(cb){
-  // Загружаем суда
   fetch(SB_URL+'/rest/v1/vessels?select=*&order=sort_order.asc',{
     method:'GET',
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
   })
   .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(function(vessels){
-    // Загружаем галочки
     return fetch(SB_URL+'/rest/v1/doc_state?select=key,value',{
       method:'GET',
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
@@ -417,10 +413,16 @@ function sbLoad(cb){
     .then(function(stateRows){
       var state={};
       (stateRows||[]).forEach(function(row){if(row.value)state[row.key]=true;});
-      cb({vessels:vessels||[],state:state,ts:Date.now()});
+      // Очищаем поле id которое добавляет Supabase
+      var clean=(vessels||[]).map(function(v){
+        var obj=Object.assign(newV(),v);
+        delete obj.id;
+        return obj;
+      });
+      cb({vessels:clean,state:state,ts:Date.now()});
     });
   })
-  .catch(function(e){cb(null);});
+  .catch(function(e){console.error('sbLoad error:',e);cb(null);});
 }
 
 function doLoad(){
