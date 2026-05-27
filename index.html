@@ -325,7 +325,25 @@ function doSaveLoc(){
 var SB_URL='https://jwszoqoselpjlxxnyumb.supabase.co';
 var SB_KEY='sb_publishable_IY0rLya2Be3ZAwTyATZQ-Q__TsTuc6f';
 
-function sbHeaders(){
+var VESSEL_FIELDS_MAP={'class':'vessel_class'};
+
+function toSbRow(v,i){
+  var row={sort_order:i};
+  Object.keys(newV()).forEach(function(k){
+    var sbKey=VESSEL_FIELDS_MAP[k]||k;
+    row[sbKey]=v[k]!==undefined?String(v[k]):'';
+  });
+  return row;
+}
+
+function fromSbRow(row){
+  var v=newV();
+  Object.keys(v).forEach(function(k){
+    var sbKey=VESSEL_FIELDS_MAP[k]||k;
+    if(row[sbKey]!==undefined)v[k]=String(row[sbKey]);
+  });
+  return v;
+}
   return{
     'Content-Type':'application/json',
     'apikey':SB_KEY,
@@ -337,13 +355,7 @@ function sbHeaders(){
 function doSaveCloud(onDone){
   setSyncDot('busy');
 
-  var vessels=V.map(function(v,i){
-    var row={};
-    // Копируем только поля нашей модели, без id
-    Object.keys(newV()).forEach(function(k){row[k]=v[k]!==undefined?v[k]:'';});
-    row.sort_order=i;
-    return row;
-  });
+  var vessels=V.map(function(v,i){return toSbRow(v,i);});
 
   // Удаляем все суда
   fetch(SB_URL+'/rest/v1/vessels?name=neq.XXXXNOTEXIST',{
@@ -414,11 +426,7 @@ function sbLoad(cb){
       var state={};
       (stateRows||[]).forEach(function(row){if(row.value)state[row.key]=true;});
       // Очищаем поле id которое добавляет Supabase
-      var clean=(vessels||[]).map(function(v){
-        var obj=Object.assign(newV(),v);
-        delete obj.id;
-        return obj;
-      });
+      var clean=(vessels||[]).map(function(v){return fromSbRow(v);});
       cb({vessels:clean,state:state,ts:Date.now()});
     });
   })
