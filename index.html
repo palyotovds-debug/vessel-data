@@ -127,6 +127,34 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 .bn.p{background:linear-gradient(135deg,#1a3a6a,#2456a4);color:#fff;border-color:transparent;box-shadow:0 2px 10px rgba(26,58,106,.35)}
 .bn.p:hover{opacity:.88;box-shadow:0 3px 14px rgba(26,58,106,.48)}
 
+/* ── Заявки modal ── */
+.zv-ov{display:none;position:fixed;inset:0;background:rgba(10,20,40,.5);z-index:100;align-items:center;justify-content:center}
+.zv-ov.o{display:flex}
+.zv-box{background:#fff;border-radius:16px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,20,60,.2);display:flex;flex-direction:column;gap:16px}
+.zv-title{font-size:15px;font-weight:700;color:#0f2347}
+.zv-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.zv-drop{border:2px dashed #c8d4e4;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s;background:#fafbfe}
+.zv-drop:hover,.zv-drop.drag{border-color:#3b82f6;background:#eff6ff}
+.zv-drop input{display:none}
+.zv-drop-icon{font-size:28px;margin-bottom:8px}
+.zv-drop-text{font-size:12px;font-weight:600;color:#64748b}
+.zv-drop-sub{font-size:10px;color:#94a3b8;margin-top:4px}
+.zv-file-ok{font-size:11px;color:#16a34a;font-weight:600;margin-top:4px}
+.zv-row{display:flex;gap:10px;align-items:flex-end}
+.zv-field{display:flex;flex-direction:column;gap:5px;flex:1}
+.zv-field label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+.zv-field input{padding:8px 12px;font-size:12px;border:1.5px solid #e2e8f5;border-radius:8px;outline:none;color:#0f2347;font-family:inherit}
+.zv-field input:focus{border-color:#3b82f6}
+.zv-types{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.zv-type-btn{padding:8px 6px;border-radius:8px;border:1.5px solid #e2e8f5;background:#fafbfe;font-size:10px;font-weight:600;color:#475569;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3}
+.zv-type-btn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+.zv-type-btn.sel{border-color:#3b82f6;background:#dbeafe;color:#1d4ed8}
+.zv-footer{display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #f1f5f9}
+.zv-sign-opt{padding:9px 14px;font-size:12px;font-weight:600;color:#1d2939;cursor:pointer;transition:background .1s}
+.zv-sign-opt:hover{background:#eff6ff;color:#1d4ed8}
+.zv-fire{padding:10px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.zv-fire:hover{opacity:.88}
+
 /* ── XL Constructor ── */
 .xlc-ov{display:none;position:fixed;inset:0;background:rgba(10,20,40,.5);z-index:100;align-items:center;justify-content:center}
 .xlc-ov.o{display:flex}
@@ -192,6 +220,7 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
   </button>
   <button class="tb" onclick="doExportJSON()">💾 JSON</button>
   <button class="tb" onclick="doOpenXLConstructor()">📊 XL</button>
+  <button class="tb" onclick="doOpenZayavki()">📋 Заявки</button>
   <label class="tb">📂 Импорт
     <input type="file" accept=".json" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none" onchange="doImport(event)"/>
   </label>
@@ -258,6 +287,68 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
       <button class="bn" onclick="doCloseXLConstructor()">Отмена</button>
       <button class="bn" onclick="doXLCReset()" style="color:#94a3b8">↺ Сбросить</button>
       <button class="bn p" onclick="doXLCExport()">📥 Скачать XL</button>
+    </div>
+  </div>
+</div>
+
+<div class="zv-ov" id="zvModal" onclick="if(event.target===this)doCloseZayavki()">
+  <div class="zv-box">
+    <div>
+      <div class="zv-title">📋 Генерація заявок</div>
+      <div class="zv-sub">Завантажте XL шаблон, вкажіть дату та причал, оберіть типи заявок</div>
+    </div>
+    <div class="zv-drop" id="zvDrop" onclick="document.getElementById('zvFile').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="doZvDrop(event)">
+      <input type="file" id="zvFile" accept=".xlsx,.xlsm,.xls" onchange="doZvFileLoad(event)"/>
+      <div class="zv-drop-icon">📂</div>
+      <div class="zv-drop-text">Перетащіть XL шаблон сюди або натисніть для вибору</div>
+      <div class="zv-drop-sub">.xlsm · .xlsx · .xls</div>
+      <div class="zv-file-ok" id="zvFileOk"></div>
+    </div>
+    <div class="zv-row">
+      <div class="zv-field">
+        <label>Дата заявки</label>
+        <input type="date" id="zvDate"/>
+      </div>
+      <div class="zv-field" style="max-width:100px">
+        <label>Час</label>
+        <input type="time" id="zvTime" value="17:00"/>
+      </div>
+      <div class="zv-field">
+        <label>Причал</label>
+        <input type="text" id="zvBerth" placeholder="Номер причала"/>
+      </div>
+    </div>
+    <div class="zv-field" style="position:relative">
+      <label>Підпис</label>
+      <input type="text" id="zvSign" placeholder="Ім'я Прізвище" autocomplete="off"
+        onfocus="doZvSignFocus()" oninput="doZvSignFocus()" onblur="setTimeout(doZvSignBlur,150)"/>
+      <div id="zvSignDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #e2e8f5;border-radius:8px;box-shadow:0 4px 16px rgba(0,20,60,.12);z-index:10;overflow:hidden;margin-top:2px">
+        <div class="zv-sign-opt" onclick="doZvSignPick('Олександр ЛИТВИНОВ')">Олександр ЛИТВИНОВ</div>
+        <div class="zv-sign-opt" onclick="doZvSignPick('Олексій АЛЬОХІН')">Олексій АЛЬОХІН</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Тип заявки</div>
+      <div class="zv-types" id="zvTypes">
+        <button class="zv-type-btn" data-type="buksblas_prih">Букс Бласт прих</button>
+        <button class="zv-type-btn" data-type="buksblas_otx">Букс Бласт отход</button>
+        <button class="zv-type-btn" data-type="buks_prih">Букс порт прих</button>
+        <button class="zv-type-btn" data-type="buks_otx">Букс порт отх</button>
+        <button class="zv-type-btn" data-type="shvart_tbt_prih">Шварт ТБТ прих</button>
+        <button class="zv-type-btn" data-type="shvart_tbt_otx">Шварт ТБТ отход</button>
+        <button class="zv-type-btn" data-type="shvart_adm_prih">Шварт Адм прих</button>
+        <button class="zv-type-btn" data-type="shvart_adm_otx">Шварт Адм отход</button>
+        <button class="zv-type-btn" data-type="znyattya_port">Зняття порт</button>
+        <button class="zv-type-btn" data-type="znyattya_mitn">Зняття митн</button>
+        <button class="zv-type-btn" data-type="line_boat">LINE BOAT</button>
+      </div>
+    </div>
+    <div class="zv-footer">
+      <button class="bn" onclick="doCloseZayavki()">Відмінити</button>
+      <button class="zv-fire" onclick="doGenerateZayavki()">🔥 ОГОНЬ</button>
     </div>
   </div>
 </div>
@@ -920,7 +1011,259 @@ window.addEventListener('beforeunload',function(){
   fetch(JBURL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBKEY},body:payload,keepalive:true}).catch(function(){});
 });
 
-// ── XL Constructor ──
+// ── Заявки ──
+var zvWB=null; // загруженная книга
+
+var ZV_SHEET_MAP={
+  'buksblas_prih':'Букс бласт прих',
+  'buksblas_otx':'Букс бласт отход',
+  'buks_prih':'Букс порт прих',
+  'buks_otx':'Букс порт отх',
+  'shvart_tbt_prih':'Шварт ТБТ прих',
+  'shvart_tbt_otx':'Шварт ТБТ отход',
+  'shvart_adm_prih':'Шварт Адм прих',
+  'shvart_adm_otx':'Шварт Адм отход',
+  'znyattya_port':'Зняття порт',
+  'znyattya_mitn':'Зняття митн',
+  'line_boat':'LINE BOAT'
+};
+
+function doOpenZayavki(){
+  // Предзаполняем дату сегодняшней
+  var today=new Date();
+  document.getElementById('zvDate').value=today.toISOString().slice(0,10);
+  document.getElementById('zvModal').classList.add('o');
+}
+function doCloseZayavki(){document.getElementById('zvModal').classList.remove('o');}
+
+function doZvSignFocus(){
+  var drop=document.getElementById('zvSignDrop');
+  var val=document.getElementById('zvSign').value.trim();
+  var opts=drop.querySelectorAll('.zv-sign-opt');
+  var filtered=!val?[0,1]:[0,1].filter(function(i){
+    return opts[i].textContent.toLowerCase().indexOf(val.toLowerCase())!==-1;
+  });
+  opts.forEach(function(o,i){o.style.display=filtered.indexOf(i)!==-1?'':'none';});
+  drop.style.display=filtered.length?'block':'none';
+}
+function doZvSignBlur(){document.getElementById('zvSignDrop').style.display='none';}
+function doZvSignPick(v){
+  document.getElementById('zvSign').value=v;
+  document.getElementById('zvSignDrop').style.display='none';
+}
+function doZvDrop(e){
+  e.preventDefault();
+  document.getElementById('zvDrop').classList.remove('drag');
+  var f=e.dataTransfer.files[0];
+  if(f)doZvLoadFile(f);
+}
+function doZvFileLoad(e){var f=e.target.files[0];if(f)doZvLoadFile(f);}
+
+function doZvLoadFile(f){
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      zvWB=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      document.getElementById('zvFileOk').textContent='✓ '+f.name+' загружено ('+zvWB.SheetNames.length+' листів)';
+      doToast('✓ Шаблон завантажено');
+    }catch(ex){doToast('Помилка: '+ex.message,4000);}
+  };
+  r.readAsArrayBuffer(f);
+}
+
+// Выбор типов заявок
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.zv-type-btn');
+  if(btn)btn.classList.toggle('sel');
+});
+
+function getZvData(){
+  if(!zvWB)return null;
+  var ws=zvWB.Sheets['DATA'];
+  if(!ws)return null;
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  var data={};
+  rows.forEach(function(row){
+    var key=String(row[0]||'').trim();
+    if(key)data[key]=row[1]||row[2]||'';
+  });
+  return data;
+}
+
+function fmtZvDate(isoDate){
+  if(!isoDate)return'';
+  var p=isoDate.split('-');
+  return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:isoDate;
+}
+
+function doGenerateZayavki(){
+  if(!zvWB){doToast('Спочатку завантажте XL шаблон',3000);return;}
+  var selected=document.querySelectorAll('.zv-type-btn.sel');
+  if(!selected.length){doToast('Оберіть хоча б один тип заявки',3000);return;}
+
+  var date=document.getElementById('zvDate').value;
+  var time=document.getElementById('zvTime').value;
+  var berth=document.getElementById('zvBerth').value.trim();
+  var sign=document.getElementById('zvSign').value.trim();
+  var fmtDate=fmtZvDate(date);
+  var SIGNS=['Олександр ЛИТВИНОВ','Олексій АЛЬОХІН'];
+
+  var pages=[];
+
+  selected.forEach(function(btn){
+    var type=btn.getAttribute('data-type');
+    var sheetName=ZV_SHEET_MAP[type];
+    if(!sheetName||!zvWB.Sheets[sheetName])return;
+
+    var ws=zvWB.Sheets[sheetName];
+    var wsData=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+    // Применяем замены
+    var processed=wsData.map(function(row){
+      return row.map(function(cell){
+        var s=String(cell);
+        if(fmtDate)s=s.replace(/ДД\.ММ\.ГГГГ/g,fmtDate).replace(/DD\.MM\.YYYY/g,fmtDate);
+        if(time&&type!=='znyattya_port'&&type!=='znyattya_mitn')s=s.replace(/17:00/g,time);
+        if(sign)SIGNS.forEach(function(o){s=s.replace(new RegExp(o,'g'),sign);});
+        return s;
+      });
+    });
+
+    // Получаем merges
+    var merges=ws['!merges']||[];
+
+    // Находим имя судна для заголовка
+    var vesselName='';
+    processed.forEach(function(row){
+      row.forEach(function(cell){
+        var s=String(cell||'');
+        if(!vesselName&&s.indexOf('т/х')!==-1){
+          var m=s.match(/т\/х\s+[«"]?([A-Z][A-Z0-9\s.]+)/i);
+          if(m)vesselName=m[1].trim().split(/\s+/).slice(0,3).join(' ');
+        }
+      });
+    });
+
+    pages.push({
+      title:sheetName+(vesselName?' — '+vesselName:''),
+      rows:processed,
+      merges:merges,
+      cols:ws['!cols']||[]
+    });
+  });
+
+  if(!pages.length){doToast('Не знайдено вибраних листів',3000);return;}
+
+  // Генерируем HTML для печати
+  var html=generatePrintHTML(pages,fmtDate,berth);
+  var win=window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+  doCloseZayavki();
+}
+
+function generatePrintHTML(pages,date,berth){
+  var pagesHtml=pages.map(function(p){
+    return '<div class="page"><div class="page-header"><span class="page-title">'+escHtml(p.title)+'</span></div>'+renderSheetAsHTML(p.rows,p.merges,p.cols)+'</div>';
+  }).join('');
+
+  var css=[
+    '*{box-sizing:border-box;margin:0;padding:0}',
+    'body{font-family:Arial,sans-serif;font-size:11px;background:#f0f2f8}',
+    '.toolbar{position:fixed;top:0;left:0;right:0;background:#1a3557;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}',
+    '.toolbar-title{flex:1;font-size:13px;font-weight:700}',
+    '.print-btn{padding:8px 20px;border-radius:8px;border:none;background:#22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer}',
+    '.close-btn{padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:12px;cursor:pointer}',
+    '.content{padding:70px 20px 20px}',
+    '.page{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);margin-bottom:20px;overflow:hidden}',
+    '.page-header{background:#f7f9fe;padding:10px 16px;border-bottom:1px solid #e2e8f5}',
+    '.page-title{font-size:12px;font-weight:700;color:#0f2347}',
+    '.sheet-table{width:100%;border-collapse:collapse;font-size:10px}',
+    '.sheet-table td{padding:3px 6px;border:1px solid #e2e8f5;vertical-align:top;white-space:pre-wrap;word-break:break-word}',
+    '.sheet-table td.bold{font-weight:700}',
+    '@media print{',
+    'body{background:#fff}',
+    '.toolbar{display:none}',
+    '.content{padding:0}',
+    '.page{box-shadow:none;border-radius:0;margin-bottom:0;page-break-after:always}',
+    '.page:last-child{page-break-after:avoid}',
+    '}'
+  ].join('');
+
+  var titleText='Заявки '+(date||'')+(berth?' причал '+berth:'');
+  var toolbarTitle='Заявки '+(date||'')+(berth?' &middot; причал '+berth:'');
+
+  var parts=[
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">',
+    '<title>',titleText,'</title>',
+    '<style>',css,'</style>',
+    '</head><body>',
+    '<div class="toolbar">',
+    '<div class="toolbar-title">',toolbarTitle,'</div>',
+    '<button class="print-btn" onclick="window.print()">&#128424; &#1044;&#1088;&#1091;&#1082; / PDF</button>',
+    '<button class="close-btn" onclick="window.close()">&#x2715; Закрити</button>',
+    '</div>',
+    '<div class="content">',pagesHtml,'</div>',
+    '</body></html>'
+  ];
+  return parts.join('');
+}
+
+function renderSheetAsHTML(rows,merges,cols){
+  if(!rows||!rows.length)return'<p style="padding:12px;color:#94a3b8">Порожній лист</p>';
+
+  // Строим карту объединённых ячеек
+  var mergeMap={};
+  var skipMap={};
+  (merges||[]).forEach(function(m){
+    var r=m.s.r,c=m.s.c,re=m.e.r,ce=m.e.c;
+    mergeMap[r+','+c]={rowspan:re-r+1,colspan:ce-c+1};
+    for(var ri=r;ri<=re;ri++){
+      for(var ci=c;ci<=ce;ci++){
+        if(ri!==r||ci!==c)skipMap[ri+','+ci]=true;
+      }
+    }
+  });
+
+  var maxCols=0;
+  rows.forEach(function(r){if(r.length>maxCols)maxCols=r.length;});
+
+  var html='<table class="sheet-table"><colgroup>';
+  for(var ci=0;ci<maxCols;ci++){
+    var w=cols[ci]&&cols[ci].wch?Math.round(cols[ci].wch*7)+'px':'80px';
+    html+='<col style="width:'+w+'">';
+  }
+  html+='</colgroup><tbody>';
+
+  rows.forEach(function(row,ri){
+    var hasContent=row.some(function(c){return String(c||'').trim();});
+    html+='<tr>';
+    for(var ci2=0;ci2<maxCols;ci2++){
+      if(skipMap[ri+','+ci2])continue;
+      var cell=row[ci2]||'';
+      var txt=String(cell).trim();
+      var merge=mergeMap[ri+','+ci2]||{};
+      var attrs='';
+      if(merge.rowspan>1)attrs+=' rowspan="'+merge.rowspan+'"';
+      if(merge.colspan>1)attrs+=' colspan="'+merge.colspan+'"';
+      var cls='';
+      if(txt===txt.toUpperCase()&&txt.length>3&&/[А-ЯЁЄІЇA-Z]/.test(txt))cls+=' bold';
+      html+='<td'+attrs+(cls?' class="'+cls.trim()+'"':'')+'>'+escHtml(txt)+'</td>';
+    }
+    html+='</tr>';
+  });
+
+  html+='</tbody></table>';
+  return html;
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('zvModal').classList.contains('o')&&e.key==='Escape')doCloseZayavki();
+});
 var XLC_ALL_COLS=[
   {k:'name',      l:'Vessel Name'},
   {k:'arr',       l:'ARR'},
