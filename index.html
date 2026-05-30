@@ -1148,8 +1148,14 @@ function doGenerateZayavki(){
 
   doToast('⏳ Генеруємо файл...',10000);
 
-  // Конвертируем файл в base64
-  var fileB64=btoa(String.fromCharCode.apply(null,new Uint8Array(zvFileBytes)));
+  // Конвертируем файл в base64 правильно для бинарных данных
+  var bytes=new Uint8Array(zvFileBytes);
+  var binary='';
+  var chunkSize=8192;
+  for(var i=0;i<bytes.length;i+=chunkSize){
+    binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
+  }
+  var fileB64=btoa(binary);
 
   var payload={
     file:fileB64,
