@@ -309,6 +309,10 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
       <div class="zv-file-ok" id="zvFileOk"></div>
     </div>
     <div class="zv-row">
+      <div class="zv-field" style="max-width:80px">
+        <label>№ заявки</label>
+        <input type="text" id="zvNum" placeholder="12" maxlength="5"/>
+      </div>
       <div class="zv-field">
         <label>Дата заявки</label>
         <input type="date" id="zvDate"/>
@@ -317,9 +321,9 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
         <label>Час</label>
         <input type="time" id="zvTime" value="17:00"/>
       </div>
-      <div class="zv-field">
+      <div class="zv-field" style="max-width:110px">
         <label>Причал</label>
-        <input type="text" id="zvBerth" placeholder="Номер причала"/>
+        <input type="text" id="zvBerth" placeholder="№"/>
       </div>
     </div>
     <div class="zv-field" style="position:relative">
@@ -1033,12 +1037,29 @@ var ZV_SHEET_MAP={
 };
 
 function doOpenZayavki(){
-  // Предзаполняем дату сегодняшней
-  var today=new Date();
-  document.getElementById('zvDate').value=today.toISOString().slice(0,10);
+  // Предзаполняем дату завтрашним днём
+  var tomorrow=new Date();
+  tomorrow.setDate(tomorrow.getDate()+1);
+  document.getElementById('zvDate').value=tomorrow.toISOString().slice(0,10);
   document.getElementById('zvModal').classList.add('o');
 }
 function doCloseZayavki(){document.getElementById('zvModal').classList.remove('o');}
+
+function getWeekNum(d){
+  var date=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  date.setDate(date.getDate()+3-(date.getDay()+6)%7);
+  var week1=new Date(date.getFullYear(),0,4);
+  return 1+Math.round(((date.getTime()-week1.getTime())/86400000-3+(week1.getDay()+6)%7)/7);
+}
+
+function getVyxNum(){
+  var today=new Date();
+  var week=getWeekNum(today);
+  var dow=today.getDay(); // 0=вс,1=пн,...,6=сб
+  if(dow===0)dow=7; // воскресенье = 7
+  var num=document.getElementById('zvNum').value.trim();
+  return String(week)+String(dow)+(num?'/'+num:'');
+}
 
 function doZvSignFocus(){
   var drop=document.getElementById('zvSignDrop');
@@ -1127,24 +1148,28 @@ function doGenerateZayavki(){
 
     // 1. Патчим sharedStrings.xml — заменяем подпись и дату/время
     return z.file('xl/sharedStrings.xml').async('string').then(function(ss){
+      // Сегодняшняя дата для шапки документа
+      var today=new Date();
+      var todayFmt=(String(today.getDate()).padStart(2,'0'))+'.'+(String(today.getMonth()+1).padStart(2,'0'))+'.'+today.getFullYear();
+
       // Заменяем подписи агентов
       var SIGNS=['Олексій АЛЬОХІН','Олександр ЛИТВИНОВ','Морський агент: Олексій АЛЬОХІН','Морський агент: Олександр ЛИТВИНОВ'];
       if(sign){
-        SIGNS.forEach(function(orig){
-          // Заменяем имя в тексте si элементов
-          ss=ss.split(orig).join(sign);
-        });
+        SIGNS.forEach(function(orig){ss=ss.split(orig).join(sign);});
       }
-      // Заменяем дату/время в конкретных паттернах
+
+      // Дата в шапке (Вих. № ... від ...) = сегодня + новый номер
+      var vyxNum=getVyxNum();
+      ss=ss.replace(/Вих\. № [^<]*від \d{2}\.\d{2}\.\d{4}/g,function(){
+        return 'Вих. № '+vyxNum+' від '+todayFmt;
+      });
+
+      // Дата/время события из поля заявки
       if(fmtDate){
-        // паттерн "19.05.2026 о 17:00" -> новая дата + время
         ss=ss.replace(/\d{2}\.\d{2}\.\d{4} о \d{2}:\d{2}/g, fmtDate+' о '+(time||'17:00'));
-        // паттерн "«23» 05.2026р. о 17:00 год." -> новый формат для LINE BOAT
-        var dateParts=date.split('-'); // yyyy-mm-dd
+        var dateParts=date.split('-');
         if(dateParts.length===3){
-          var day=dateParts[2];
-          var mon=dateParts[1];
-          var yr=dateParts[0];
+          var day=dateParts[2],mon=dateParts[1],yr=dateParts[0];
           ss=ss.replace(/«\d+» \d+\.\d+р\. о \d{2}:\d{2} год\./g,
             '«'+day+'» '+mon+'.'+yr+'р. о '+(time||'17:00')+' год.');
         }
