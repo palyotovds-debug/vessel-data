@@ -3,11 +3,5 @@
     "api/patch-xl.py": {
       "runtime": "@vercel/python"
     }
-  },
-  "routes": [
-    {
-      "src": "/api/patch-xl",
-      "dest": "/api/patch-xl.py"
-    }
-  ]
+  }
 }
