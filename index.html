@@ -1134,7 +1134,11 @@ function doGenerateZayavki(){
   var sign=document.getElementById('zvSign').value.trim();
   var fmtDate=fmtZvDate(date);
 
-  // Определяем нужные листы
+  var today=new Date();
+  var todayFmt=(String(today.getDate()).padStart(2,'0'))+'.'
+    +(String(today.getMonth()+1).padStart(2,'0'))+'.'+today.getFullYear();
+  var vyxNum=getVyxNum();
+
   var selectedSheets=[];
   selected.forEach(function(btn){
     var type=btn.getAttribute('data-type');
@@ -1142,85 +1146,37 @@ function doGenerateZayavki(){
     if(sn)selectedSheets.push(sn);
   });
 
-  // Читаем оригинальный ZIP
-  var zip=new JSZip();
-  zip.loadAsync(zvFileBytes).then(function(z){
+  doToast('⏳ Генеруємо файл...',10000);
 
-    // 1. Патчим sharedStrings.xml — заменяем подпись и дату/время
-    return z.file('xl/sharedStrings.xml').async('string').then(function(ss){
-      // Сегодняшняя дата для шапки документа
-      var today=new Date();
-      var todayFmt=(String(today.getDate()).padStart(2,'0'))+'.'+(String(today.getMonth()+1).padStart(2,'0'))+'.'+today.getFullYear();
+  // Конвертируем файл в base64
+  var fileB64=btoa(String.fromCharCode.apply(null,new Uint8Array(zvFileBytes)));
 
-      // Заменяем подписи агентов
-      var SIGNS=['Олексій АЛЬОХІН','Олександр ЛИТВИНОВ','Морський агент: Олексій АЛЬОХІН','Морський агент: Олександр ЛИТВИНОВ'];
-      if(sign){
-        SIGNS.forEach(function(orig){ss=ss.split(orig).join(sign);});
-      }
+  var payload={
+    file:fileB64,
+    params:{
+      vyxNum:vyxNum,
+      fmtDate:fmtDate,
+      time:time,
+      berth:berth,
+      sign:sign,
+      todayFmt:todayFmt,
+      selectedSheets:selectedSheets
+    }
+  };
 
-      // Дата в шапке (Вих. № ... від ...) = сегодня + новый номер
-      var vyxNum=getVyxNum();
-      ss=ss.replace(/Вих\. № [^<]*від \d{2}\.\d{2}\.\d{4}/g,function(){
-        return 'Вих. № '+vyxNum+' від '+todayFmt;
-      });
-
-      // Дата/время события из поля заявки
-      if(fmtDate){
-        ss=ss.replace(/\d{2}\.\d{2}\.\d{4} о \d{2}:\d{2}/g, fmtDate+' о '+(time||'17:00'));
-        var dateParts=date.split('-');
-        if(dateParts.length===3){
-          var day=dateParts[2],mon=dateParts[1],yr=dateParts[0];
-          ss=ss.replace(/«\d+» \d+\.\d+р\. о \d{2}:\d{2} год\./g,
-            '«'+day+'» '+mon+'.'+yr+'р. о '+(time||'17:00')+' год.');
-        }
-      }
-      z.file('xl/sharedStrings.xml',ss);
-
-      // 2. Патчим DATA sheet (sheet1.xml) — B4=дата, B37=причал
-      return z.file('xl/worksheets/sheet1.xml').async('string').then(function(xml){
-        // B4 - дата захода (тип s = shared string, нам нужно поменять на inline)
-        if(fmtDate){
-          // Меняем B4 на inline string с датой
-          xml=xml.replace(/<c r="B4"[^>]*t="s"[^>]*><v>[^<]*<\/v><\/c>/,
-            '<c r="B4" s="260" t="inlineStr"><is><t>'+fmtDate+'</t></is></c>');
-          // Если не нашли - попробуем другой паттерн
-          xml=xml.replace(/<c r="B4"[^/]*\/>/,
-            '<c r="B4" s="260" t="inlineStr"><is><t>'+fmtDate+'</t></is></c>');
-        }
-        if(berth){
-          // B37 - причал
-          xml=xml.replace(/<c r="B37"[^>]*t="s"[^>]*><v>[^<]*<\/v><\/c>/,
-            '<c r="B37" s="220" t="inlineStr"><is><t>'+escXml(berth)+'</t></is></c>');
-        }
-        z.file('xl/worksheets/sheet1.xml',xml);
-
-        // 3. Убираем из книги все листы кроме DATA и выбранных
-        return z.file('xl/workbook.xml').async('string').then(function(wb){
-          // Получаем имена всех листов в книге
-          var allSheets=[];
-          var re=/<sheet[^>]+name="([^"]+)"[^>]+sheetId="(\d+)"[^>]+r:id="([^"]+)"[^>]*\/>/g;
-          var m;
-          while((m=re.exec(wb))!==null){
-            allSheets.push({name:m[1],id:m[2],rid:m[3]});
-          }
-
-          // Оставляем только нужные листы + DATA
-          var keepNames=['DATA'].concat(selectedSheets);
-          var removeSheets=allSheets.filter(function(s){return keepNames.indexOf(s.name)===-1;});
-
-          // Убираем листы из workbook.xml
-          removeSheets.forEach(function(s){
-            wb=wb.replace(new RegExp('<sheet[^>]+name="'+escRegex(s.name)+'"[^/]*/\\s*>','g'),'');
-          });
-          z.file('xl/workbook.xml',wb);
-
-          // 4. Генерируем файл
-          return z.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
-        });
-      });
-    });
-  }).then(function(buf){
-    var blob=new Blob([buf],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});
+  fetch('/api/patch-xl',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!d.ok)throw new Error(d.error||'Server error');
+    // Декодируем и скачиваем
+    var binary=atob(d.file);
+    var bytes=new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    var blob=new Blob([bytes],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
@@ -1230,9 +1186,9 @@ function doGenerateZayavki(){
     setTimeout(function(){URL.revokeObjectURL(url);},3000);
     doToast('✅ Файл скачано — відкрийте в Excel і друкуйте');
     doCloseZayavki();
-  }).catch(function(e){
+  })
+  .catch(function(e){
     doToast('⚠️ Помилка: '+e.message,4000);
-    console.error(e);
   });
 }
 
