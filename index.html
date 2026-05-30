@@ -1110,7 +1110,7 @@ function doGenerateZayavki(){
   var fmtDate=fmtZvDate(date);
   var SIGNS=['Олександр ЛИТВИНОВ','Олексій АЛЬОХІН'];
 
-  var pages=[];
+  var newWB=XLSX.utils.book_new();
 
   selected.forEach(function(btn){
     var type=btn.getAttribute('data-type');
@@ -1118,98 +1118,42 @@ function doGenerateZayavki(){
     if(!sheetName||!zvWB.Sheets[sheetName])return;
 
     var ws=zvWB.Sheets[sheetName];
-    var wsData=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
 
-    // Применяем замены текста
-    var processed=wsData.map(function(row){
-      return row.map(function(cell){
-        var s=String(cell);
+    // Клонируем лист
+    var newWs={};
+    Object.keys(ws).forEach(function(key){
+      if(key==='!ref'||key==='!cols'||key==='!rows'||key==='!merges'||key==='!margins'){
+        newWs[key]=ws[key];
+        return;
+      }
+      if(key[0]==='!')return;
+      var cell=ws[key];
+      if(!cell)return;
+      // Глубокое копирование ячейки
+      var newCell=JSON.parse(JSON.stringify(cell));
+      // Применяем замены текста
+      if(newCell.v!==undefined){
+        var s=String(newCell.v);
         if(fmtDate)s=s.replace(/ДД\.ММ\.ГГГГ/g,fmtDate).replace(/DD\.MM\.YYYY/g,fmtDate);
         if(time&&type!=='znyattya_port'&&type!=='znyattya_mitn')s=s.replace(/17:00/g,time);
         if(sign)SIGNS.forEach(function(o){s=s.replace(new RegExp(o,'g'),sign);});
-        return s;
-      });
-    });
-
-    // Ширины колонок в мм (1 char unit ≈ 2.1mm)
-    var widths=[];
-    if(ws['!cols']){
-      ws['!cols'].forEach(function(col){
-        widths.push(col&&col.wch?(col.wch*2.1).toFixed(1):14);
-      });
-    }
-
-    // Высоты строк в points
-    var heights=[];
-    if(ws['!rows']){
-      ws['!rows'].forEach(function(row){
-        heights.push(row&&row.hpx?row.hpx:15);
-      });
-    }
-
-    // Стили ячеек (из ws напрямую)
-    var styles=[];
-    var ref=XLSX.utils.decode_range(ws['!ref']||'A1');
-    for(var ri2=ref.s.r;ri2<=ref.e.r;ri2++){
-      var rowStyles=[];
-      for(var ci3=ref.s.c;ci3<=ref.e.c;ci3++){
-        var addr=XLSX.utils.encode_cell({r:ri2,c:ci3});
-        var c=ws[addr];
-        var st={};
-        if(c&&c.s){
-          if(c.s.font&&c.s.font.bold)st.bold=true;
-          if(c.s.alignment){
-            if(c.s.alignment.horizontal==='center')st.align='center';
-            else if(c.s.alignment.horizontal==='right')st.align='right';
-            if(c.s.alignment.wrapText)st.wrap=true;
-          }
-          if(c.s.font&&c.s.font.sz){st.size=Math.round(c.s.font.sz);if(st.size>12)st.big=true;}
-          if(c.s.border){
-            var bd=c.s.border;
-            var hasL=bd.left&&bd.left.style;
-            var hasR=bd.right&&bd.right.style;
-            var hasT=bd.top&&bd.top.style;
-            var hasB=bd.bottom&&bd.bottom.style;
-            if(hasL&&hasR&&hasT&&hasB)st.bAll=true;
-            else{if(hasL)st.bLeft=true;if(hasR)st.bRight=true;if(hasT)st.bTop=true;if(hasB)st.bBottom=true;}
-          }
-        }
-        rowStyles.push(st);
+        if(s!==String(newCell.v)){newCell.v=s;newCell.t='s';delete newCell.f;}
       }
-      styles.push(rowStyles);
-    }
-
-    // Имя судна для заголовка
-    var vesselName='';
-    processed.forEach(function(row){
-      row.forEach(function(cell){
-        var s=String(cell||'');
-        if(!vesselName&&s.indexOf('т/х')!==-1){
-          var m=s.match(/т\/х\s+[«"]?([A-Z][A-Z0-9\s.]+)/i);
-          if(m)vesselName=m[1].trim().split(/\s+/).slice(0,3).join(' ');
-        }
-      });
+      newWs[key]=newCell;
+    });
+    // Копируем служебные поля
+    ['!ref','!cols','!rows','!merges','!margins','!pageSetup','!printHeader'].forEach(function(k){
+      if(ws[k])newWs[k]=ws[k];
     });
 
-    pages.push({
-      sheetName:sheetName,
-      title:sheetName+(vesselName?' — '+vesselName:''),
-      rows:processed,
-      merges:ws['!merges']||[],
-      cols:ws['!cols']||[],
-      widths:widths,
-      heights:heights,
-      styles:styles
-    });
+    XLSX.utils.book_append_sheet(newWB,newWs,sheetName);
   });
 
-  if(!pages.length){doToast('Не знайдено вибраних листів',3000);return;}
+  if(!newWB.SheetNames.length){doToast('Не знайдено вибраних листів',3000);return;}
 
-  // Генерируем HTML для печати
-  var html=generatePrintHTML(pages,fmtDate,berth);
-  var win=window.open('','_blank','width=900,height=700');
-  win.document.write(html);
-  win.document.close();
+  var fname='Заявки'+(berth?'_'+berth:'')+(fmtDate?'_'+fmtDate.replace(/\./g,'-'):'')+'.xlsx';
+  XLSX.writeFile(newWB,fname,{cellStyles:true,bookSST:false});
+  doToast('✅ '+newWB.SheetNames.length+' заявок скачано — відкрийте в Excel і друкуйте');
   doCloseZayavki();
 }
 
