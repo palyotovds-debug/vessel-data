@@ -1147,15 +1147,21 @@ function doGenerateZayavki(){
   });
 
   doToast('⏳ Генеруємо файл...',10000);
+  console.log('zvFileBytes:', zvFileBytes ? zvFileBytes.byteLength : 'NULL');
+  console.log('selectedSheets:', selectedSheets);
+  console.log('params:', {vyxNum:vyxNum, fmtDate:fmtDate, time:time, berth:berth, sign:sign});
 
   // Конвертируем файл в base64 правильно для бинарных данных
   var bytes=new Uint8Array(zvFileBytes);
+  console.log('bytes length:', bytes.length);
   var binary='';
   var chunkSize=8192;
   for(var i=0;i<bytes.length;i+=chunkSize){
     binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
   }
+  console.log('binary length:', binary.length);
   var fileB64=btoa(binary);
+  console.log('base64 length:', fileB64.length);
 
   var payload={
     file:fileB64,
