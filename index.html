@@ -1147,61 +1147,36 @@ function doGenerateZayavki(){
   });
 
   doToast('⏳ Генеруємо файл...',10000);
-  console.log('zvFileBytes:', zvFileBytes ? zvFileBytes.byteLength : 'NULL');
-  console.log('selectedSheets:', selectedSheets);
-  console.log('params:', {vyxNum:vyxNum, fmtDate:fmtDate, time:time, berth:berth, sign:sign});
 
-  // Конвертируем файл в base64 правильно для бинарных данных
-  var bytes=new Uint8Array(zvFileBytes);
-  console.log('bytes length:', bytes.length);
-  var binary='';
-  var chunkSize=8192;
-  for(var i=0;i<bytes.length;i+=chunkSize){
-    binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunkSize));
-  }
-  console.log('binary length:', binary.length);
-  var fileB64=btoa(binary);
-  console.log('base64 length:', fileB64.length);
-
-  var payload={
-    file:fileB64,
-    params:{
-      vyxNum:vyxNum,
-      fmtDate:fmtDate,
-      time:time,
-      berth:berth,
-      sign:sign,
-      todayFmt:todayFmt,
-      selectedSheets:selectedSheets
-    }
+  var blob=new Blob([zvFileBytes]);
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var fileB64=e.target.result.split(',')[1];
+    var payload={
+      file:fileB64,
+      params:{vyxNum:vyxNum,fmtDate:fmtDate,time:time,berth:berth,sign:sign,todayFmt:todayFmt,selectedSheets:selectedSheets}
+    };
+    fetch('/api/patch-xl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok)throw new Error(d.error||'Server error');
+      var bin=atob(d.file);
+      var arr=new Uint8Array(bin.length);
+      for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      var b2=new Blob([arr],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});
+      var url=URL.createObjectURL(b2);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='Заявки'+(berth?'_'+berth:'')+(fmtDate?'_'+fmtDate.replace(/\./g,'-'):'')+'.xlsm';
+      a.click();
+      setTimeout(function(){URL.revokeObjectURL(url);},3000);
+      doToast('✅ Файл скачано — відкрийте в Excel і друкуйте');
+      doCloseZayavki();
+    })
+    .catch(function(err){doToast('⚠️ Помилка: '+err.message,4000);});
   };
-
-  fetch('/api/patch-xl',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  })
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(!d.ok)throw new Error(d.error||'Server error');
-    // Декодируем и скачиваем
-    var binary=atob(d.file);
-    var bytes=new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-    var blob=new Blob([bytes],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');
-    a.href=url;
-    var fname='Заявки'+(berth?'_'+berth:'')+(fmtDate?'_'+fmtDate.replace(/\./g,'-'):'')+'.xlsm';
-    a.download=fname;
-    a.click();
-    setTimeout(function(){URL.revokeObjectURL(url);},3000);
-    doToast('✅ Файл скачано — відкрийте в Excel і друкуйте');
-    doCloseZayavki();
-  })
-  .catch(function(e){
-    doToast('⚠️ Помилка: '+e.message,4000);
-  });
+  reader.onerror=function(){doToast('⚠️ Помилка читання файлу',4000);};
+  reader.readAsDataURL(blob);
 }
 
 function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
