@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/patch-xl.py": {
-      "runtime": "@vercel/python"
+      "runtime": "python3.9"
     }
   }
 }
