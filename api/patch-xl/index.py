@@ -24,6 +24,8 @@ def patch_xlsm(file_bytes, params):
     smap     = re.findall(r'name="([^"]+)"[^>]+r:id="([^"]+)"', wb_xml)
     keep     = set(['DATA'] + selected)
 
+    be = berth.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;') if berth else ''
+
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w', allowZip64=True) as zout:
         for item in orig.infolist():
@@ -44,7 +46,7 @@ def patch_xlsm(file_bytes, params):
                         r'Вих\. № [^<]*від \d{2}\.\d{2}\.\d{4}',
                         'Вих. № ' + vyx_num + ' від ' + today_fmt, t)
 
-                # Дата+время события "дд.мм.рррр о чч:мм"
+                # Дата+время события
                 if fmt_date:
                     t = re.sub(
                         r'\d{2}\.\d{2}\.\d{4} о \d{2}:\d{2}',
@@ -53,37 +55,54 @@ def patch_xlsm(file_bytes, params):
                     if len(p) == 3:
                         t = re.sub(
                             r'«\d+» \d+\.\d+р\. о \d{2}:\d{2} год\.',
-                            '«' + p[0] + '» ' + p[1] + '.' + p[2] + 'р. о ' + time_val + ' год.', t)
+                            '«'+p[0]+'» '+p[1]+'.'+p[2]+'р. о '+time_val+' год.', t)
 
-                # Причал — заменяем оригинальное значение '14/15; 16; 17'
-                if berth:
-                    be = berth.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-                    # Заменяем любой вариант причала в тексте
-                    t = re.sub(r'14/15(?:; 16)?(?:; 17)?', be, t)
-                    # И отдельные номера если вдруг
-                    t = re.sub(r'(?<!\d)14/15(?!\d)', be, t)
+                # Причал — заменяем <si><t>14/15; 16; 17</t></si>
+                if be:
+                    t = re.sub(r'<si><t>14/15[^<]*</t></si>', '<si><t>'+be+'</t></si>', t)
 
                 data = t.encode('utf-8')
 
-            # ── DATA sheet (sheet1.xml) ───────────────────────────────────
+            # ── DATA sheet ───────────────────────────────────────────────
             elif item.filename == 'xl/worksheets/sheet1.xml':
                 t = data.decode('utf-8')
 
+                def replace_cell(xml, cell_ref, value, style='260'):
+                    # Заменяем ячейку на inlineStr
+                    safe = value.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+                    new_cell = '<c r="'+cell_ref+'" s="'+style+'" t="inlineStr"><is><t>'+safe+'</t></is></c>'
+                    # Попробуем заменить существующую
+                    replaced = re.sub(r'<c r="'+cell_ref+'"[^>]*>(?:.*?)</c>', new_cell, xml, flags=re.DOTALL)
+                    if replaced == xml:
+                        # Ячейка пустая — вставим в нужную строку
+                        row_num = re.search(r'\d+', cell_ref.replace(cell_ref[0],'',1)).group() if cell_ref else ''
+                        row_num = ''.join(filter(str.isdigit, cell_ref))
+                        # Добавим перед закрытием строки
+                        replaced = re.sub(
+                            r'(<row r="'+row_num+r'"[^>]*>)',
+                            r'\1'+new_cell, xml)
+                    return replaced
+
                 # B4 — дата захода
                 if fmt_date:
-                    t = re.sub(
-                        r'<c r="B4"[^>]*t="s"[^>]*><v>[^<]*</v></c>',
-                        '<c r="B4" s="260" t="inlineStr"><is><t>' + fmt_date + '</t></is></c>', t)
+                    t = replace_cell(t, 'B4', fmt_date, '260')
+
+                # G4 — дата захода (для Шварт ТБТ и др.)
+                if fmt_date:
+                    t = replace_cell(t, 'G4', fmt_date, '191')
+
+                # G5 — время захода
+                if time_val:
+                    t = replace_cell(t, 'G5', time_val, '191')
 
                 data = t.encode('utf-8')
 
-            # ── workbook.xml — оставляем только нужные листы ─────────────
+            # ── workbook.xml ─────────────────────────────────────────────
             elif item.filename == 'xl/workbook.xml':
                 t = data.decode('utf-8')
                 for name, _ in smap:
                     if name not in keep:
-                        t = re.sub(
-                            r'<sheet[^>]+name="' + re.escape(name) + r'"[^/]*/\s*>', '', t)
+                        t = re.sub(r'<sheet[^>]+name="'+re.escape(name)+r'"[^/]*/\s*>', '', t)
                 data = t.encode('utf-8')
 
             ni = zipfile.ZipInfo(item.filename)
