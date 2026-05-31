@@ -1,11 +1,10 @@
+from http.server import BaseHTTPRequestHandler
 import json
 import base64
 import zipfile
 import io
 import re
 
-def get_week_number(d):
-    return d.isocalendar()[1]
 
 def patch_xlsm(file_bytes, params):
     vyx_num = params.get('vyxNum', '')
@@ -23,13 +22,10 @@ def patch_xlsm(file_bytes, params):
     ]
 
     orig_zip = zipfile.ZipFile(io.BytesIO(file_bytes))
-
-    # Mapping sheet name -> file
     wb_xml = orig_zip.read('xl/workbook.xml').decode('utf-8')
     rels_xml = orig_zip.read('xl/_rels/workbook.xml.rels').decode('utf-8')
     rid_to_file = dict(re.findall(r'Id="([^"]+)"[^>]+Target="([^"]+)"', rels_xml))
     sheet_map = re.findall(r'name="([^"]+)"[^>]+r:id="([^"]+)"', wb_xml)
-
     keep_sheets = set(['DATA'] + selected_sheets)
 
     out_buf = io.BytesIO()
@@ -73,7 +69,7 @@ def patch_xlsm(file_bytes, params):
                         text
                     )
                 if berth:
-                    b = berth.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+                    b = berth.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                     text = re.sub(
                         r'<c r="B37"[^>]*t="s"[^>]*><v>[^<]*</v></c>',
                         '<c r="B37" s="220" t="inlineStr"><is><t>' + b + '</t></is></c>',
@@ -100,40 +96,38 @@ def patch_xlsm(file_bytes, params):
     return out_buf.getvalue()
 
 
-def handler(request):
-    if request.method == 'OPTIONS':
-        return Response('', status=200, headers={
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        })
+class handler(BaseHTTPRequestHandler):
 
-    if request.method != 'POST':
-        return Response(json.dumps({'ok': False, 'error': 'Method not allowed'}),
-                       status=405, headers={'Content-Type': 'application/json'})
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.end_headers()
 
-    try:
-        payload = request.json
-        file_b64 = payload.get('file', '')
-        params = payload.get('params', {})
-        file_bytes = base64.b64decode(file_b64)
-        result_bytes = patch_xlsm(file_bytes, params)
-        result_b64 = base64.b64encode(result_bytes).decode('utf-8')
+    def do_POST(self):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            payload = json.loads(body)
+            file_bytes = base64.b64decode(payload['file'])
+            result = patch_xlsm(file_bytes, payload.get('params', {}))
+            result_b64 = base64.b64encode(result).decode('utf-8')
+            response = json.dumps({'ok': True, 'file': result_b64}).encode('utf-8')
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
+        except Exception as e:
+            response = json.dumps({'ok': False, 'error': str(e)}).encode('utf-8')
+            self.send_response(500)
+            self._send_cors_headers()
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
 
-        return Response(
-            json.dumps({'ok': True, 'file': result_b64}),
-            status=200,
-            headers={
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
-        )
-    except Exception as e:
-        return Response(
-            json.dumps({'ok': False, 'error': str(e)}),
-            status=500,
-            headers={
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
-        )
+    def _send_cors_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
