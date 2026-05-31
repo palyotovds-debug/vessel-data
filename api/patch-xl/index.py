@@ -68,20 +68,14 @@ def patch_xlsm(file_bytes, params):
                 t = data.decode('utf-8')
 
                 def replace_cell(xml, cell_ref, value, style='260'):
-                    # Заменяем ячейку на inlineStr
                     safe = value.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
                     new_cell = '<c r="'+cell_ref+'" s="'+style+'" t="inlineStr"><is><t>'+safe+'</t></is></c>'
-                    # Попробуем заменить существующую
-                    replaced = re.sub(r'<c r="'+cell_ref+'"[^>]*>(?:.*?)</c>', new_cell, xml, flags=re.DOTALL)
-                    if replaced == xml:
-                        # Ячейка пустая — вставим в нужную строку
-                        row_num = re.search(r'\d+', cell_ref.replace(cell_ref[0],'',1)).group() if cell_ref else ''
-                        row_num = ''.join(filter(str.isdigit, cell_ref))
-                        # Добавим перед закрытием строки
-                        replaced = re.sub(
-                            r'(<row r="'+row_num+r'"[^>]*>)',
-                            r'\1'+new_cell, xml)
-                    return replaced
+                    # Заменяем пустую ячейку <c r="G4" s="191"/>
+                    replaced = re.sub(r'<c r="'+cell_ref+r'"[^/]*/>', new_cell, xml)
+                    if replaced != xml:
+                        return replaced
+                    # Заменяем непустую
+                    return re.sub(r'<c r="'+cell_ref+r'"[^>]*>(?:.*?)</c>', new_cell, xml, flags=re.DOTALL)
 
                 # B4 — дата захода
                 if fmt_date:
