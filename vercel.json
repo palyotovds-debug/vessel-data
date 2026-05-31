@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/patch-xl.py": {
-      "runtime": "python3.9"
-    }
-  }
-}
+{}
