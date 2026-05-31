@@ -103,6 +103,10 @@ def patch_xlsm(file_bytes, params):
                 for name, _ in smap:
                     if name not in keep:
                         t = re.sub(r'<sheet[^>]+name="'+re.escape(name)+r'"[^/]*/\s*>', '', t)
+                # Принудительный пересчёт формул при открытии
+                t = re.sub(r'<calcPr[^/]*/>', '<calcPr calcId="0" fullCalcOnLoad="1"/>', t)
+                if '<calcPr' not in t:
+                    t = t.replace('</workbook>', '<calcPr calcId="0" fullCalcOnLoad="1"/></workbook>')
                 data = t.encode('utf-8')
 
             ni = zipfile.ZipInfo(item.filename)
