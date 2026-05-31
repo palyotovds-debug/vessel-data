@@ -1152,6 +1152,7 @@ function doGenerateZayavki(){
   var reader=new FileReader();
   reader.onload=function(e){
     var fileB64=e.target.result.split(',')[1];
+    console.log('PATCH params:', {berth:berth,sign:sign,fmtDate:fmtDate,vyxNum:vyxNum});
     var payload={
       file:fileB64,
       params:{vyxNum:vyxNum,fmtDate:fmtDate,time:time,berth:berth,sign:sign,todayFmt:todayFmt,selectedSheets:selectedSheets}
