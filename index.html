@@ -86,7 +86,14 @@ td.xc{width:32px;min-width:32px;max-width:32px;padding:0;text-align:center;verti
 .sail-plus:hover{opacity:.7}
 
 /* ── Vessel details ── */
-.vd{display:none;padding:10px 12px 12px;border-top:1px solid #edf1f9}
+/* ── Row fade-in ── */
+@keyframes rowFade{from{opacity:0}to{opacity:1}}
+tbody tr{animation:rowFade .15s ease forwards}
+.vm{transition:background .15s ease}
+.shr td,.mhr td{font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;user-select:none;letter-spacing:.08em;transition:opacity .15s}
+.shr:hover td,.mhr:hover td{opacity:.8}
+.vd{display:none;padding:10px 12px 12px;border-top:1px solid rgba(255,255,255,.07);overflow:hidden;transition:max-height .25s ease,opacity .2s ease}
+.vd.o{display:block}
 .vd.o{display:block}
 .dg{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px}
 .di{display:flex;flex-direction:column;gap:2px}
@@ -117,8 +124,13 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
 .sail-plus:hover{opacity:.7}
 
 /* ── Section / month headers ── */
-.shr td,.mhr td{font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;user-select:none;letter-spacing:.08em;transition:filter .12s}
-.shr td:hover,.mhr td:hover{filter:brightness(.97)}
+/* ── Row animations ── */
+.vm{transition:background .15s ease}
+.shr td,.mhr td{font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;user-select:none;letter-spacing:.08em;transition:opacity .15s}
+.shr:hover td,.mhr:hover td{opacity:.8}
+/* Expand row slide */
+.exp-row td>div{overflow:hidden;transition:max-height .25s ease,opacity .2s ease}
+.exp-row.closing td>div{max-height:0!important;opacity:0}
 
 .nr{padding:36px;text-align:center;color:#b4bed4;font-size:13px}
 
@@ -738,7 +750,7 @@ function renderVesselRow(v,isSailed){
   h+='<button class="db" onclick="doDel('+ri+')">'+SVG_DEL+'</button></div>';
   if(op){
     var url=v.imo?'https://www.marinetraffic.com/en/ais/details/ships/imo:'+v.imo:'https://www.marinetraffic.com/en/ais/index/search/all/keyword:'+encodeURIComponent(v.name);
-    h+='<div class="vd o" style="background:'+vcBg+'"><div class="dg">';
+    h+='<div id="exp-'+ri+'" class="vd o" style="background:'+vcBg+'"><div class="dg">';
     CF.forEach(function(f){
       if(f.lnk){h+='<div class="di f"><span class="dl">'+f.l+'</span><a href="'+url+'" target="_blank" class="ml">→ MarineTraffic</a></div>';}
       else if(f.dt){h+='<div class="di"><span class="dl">'+f.l+'</span><input type="date" data-i="'+ri+'" data-f="'+f.k+'" value="'+(v[f.k]||'')+'" onchange="doSetField(this)"></div>';}
@@ -900,7 +912,8 @@ function doRender(){
     }
   }
 
-  h+='</tbody>';t.innerHTML=h;
+  h+='</tbody>';
+  t.innerHTML=h;
   setTimeout(initFloatHead,50);
 }
 
@@ -1034,11 +1047,50 @@ function doConfirmSail(){
 
 function doTick(ve,de){var v=decodeURIComponent(ve),d=decodeURIComponent(de);S[sk(v,d)]=!gs(v,d);doRender();doSave();}
 function doTogExp(i){
-  // Не открываем карточку если sail modal открыт
   if(document.getElementById('sailModal').classList.contains('o'))return;
-  var v=V[i];EX[v.name+'|||'+v.addedDate]=!EX[v.name+'|||'+v.addedDate];doRender();
+  var v=V[i];
+  var ek=v.name+'|||'+v.addedDate;
+  var isOpen=!!EX[ek];
+
+  if(isOpen){
+    var vd=document.getElementById('exp-'+i);
+    if(vd){
+      vd.style.maxHeight=vd.scrollHeight+'px';
+      vd.style.opacity='1';
+      requestAnimationFrame(function(){
+        vd.style.maxHeight='0px';
+        vd.style.opacity='0';
+        setTimeout(function(){
+          EX[ek]=false;
+          doRender();
+        },230);
+      });
+    } else {
+      EX[ek]=false;
+      doRender();
+    }
+  } else {
+    EX[ek]=true;
+    doRender();
+    requestAnimationFrame(function(){
+      var vd=document.getElementById('exp-'+i);
+      if(vd){
+        var h=vd.scrollHeight;
+        vd.style.maxHeight='0px';
+        vd.style.opacity='0';
+        requestAnimationFrame(function(){
+          vd.style.maxHeight=h+'px';
+          vd.style.opacity='1';
+          setTimeout(function(){vd.style.maxHeight='none';},260);
+        });
+      }
+    });
+  }
 }
-function doToggleMonth(mki){COLLAPSED[mki]=!COLLAPSED[mki];doRender();}
+function doToggleMonth(mki){
+  COLLAPSED[mki]=!COLLAPSED[mki];
+  doRender();
+}
 function doDel(i){var v=V[i];if(!confirm('Удалить "'+v.name+'"?'))return;var ek=v.name+'|||'+v.addedDate;DOCS.forEach(function(d){delete S[sk(ek,d)];});V.splice(i,1);delete EX[ek];doRender();doSave();doToast('Судно удалено');}
 function doOpenModal(){document.getElementById('iName').value='';document.getElementById('iImo').value='';document.getElementById('modal').classList.add('o');setTimeout(function(){document.getElementById('iName').focus();},60);}
 function doCloseModal(){document.getElementById('modal').classList.remove('o');}
