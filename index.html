@@ -1600,87 +1600,112 @@ function wxWindDir(deg){
 }
 
 function doWxFetch(){
-  fetch('/api/weather')
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=46.301&longitude=30.655&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover&forecast_days=2&timezone=Europe%2FKiev')
   .then(function(r){return r.json();})
   .then(function(d){
-    if(d.error)throw new Error(d.error);
-    wxData=d;
+    wxData={_openmeteo:true,_d:d};
     doWxUpdate();
   })
   .catch(function(e){console.warn('Weather error:',e);});
 }
 
-function doWxUpdate(){
-  if(!wxData||!wxData.ts)return;
-  var now=Date.now();
-  // Найдём ближайший timestep
-  var idx=0;
-  for(var i=0;i<wxData.ts.length;i++){
-    if(wxData.ts[i]<=now)idx=i;
+function wxGetCurrent(){
+  if(!wxData)return null;
+  if(wxData._openmeteo){
+    var c=wxData._d.current;
+    return{
+      temp:Math.round(c.temperature_2m),
+      wind:Math.round(c.wind_speed_10m),
+      wdir:c.wind_direction_10m||0,
+      precip:c.precipitation||0,
+      clouds:c.cloud_cover||0
+    };
   }
-  var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][idx]-273.15):null;
-  var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][idx]):null;
-  var precip=wxData['precip-surface']?wxData['precip-surface'][idx]:0;
-  var clouds=wxData['clouds-surface']?wxData['clouds-surface'][idx]:0;
+  if(!wxData.ts)return null;
+  var now=Date.now(),idx=0;
+  for(var i=0;i<wxData.ts.length;i++){if(wxData.ts[i]<=now)idx=i;}
+  return{
+    temp:wxData['temp-surface']?Math.round(wxData['temp-surface'][idx]-273.15):null,
+    wind:wxData['wind-surface']?Math.round(wxData['wind-surface'][idx]):null,
+    wdir:wxData['windDir-surface']?wxData['windDir-surface'][idx]:0,
+    precip:wxData['precip-surface']?wxData['precip-surface'][idx]:0,
+    clouds:wxData['clouds-surface']?wxData['clouds-surface'][idx]:0
+  };
+}
 
-  if(temp!==null){
-    var icon=wxGetIcon(precip,wind,clouds,temp);
-    document.getElementById('wxIcon').textContent=icon;
-    document.getElementById('wxTemp').textContent=temp+'°C';
-    document.getElementById('wxWind').textContent='wind '+(wind||'--')+' m/s';
-  }
+function doWxUpdate(){
+  var cur=wxGetCurrent();
+  if(!cur||cur.temp===null)return;
+  var icon=wxGetIcon(cur.precip,cur.wind,cur.clouds,cur.temp);
+  document.getElementById('wxIcon').textContent=icon;
+  document.getElementById('wxTemp').textContent=cur.temp+'°C';
+  document.getElementById('wxWind').textContent='wind '+cur.wind+' m/s';
 }
 
 function doWxRenderDrop(){
-  if(!wxData||!wxData.ts)return;
-  var now=Date.now();
+  if(!wxData)return;
   var forecastEl=document.getElementById('wxForecast');
   var detailsEl=document.getElementById('wxDetails');
   forecastEl.innerHTML='';
   detailsEl.innerHTML='';
 
-  // Найдём текущий индекс
-  var startIdx=0;
-  for(var i=0;i<wxData.ts.length;i++){
-    if(wxData.ts[i]<=now)startIdx=i;
+  var steps=[];
+
+  if(wxData._openmeteo){
+    var h=wxData._d.hourly;
+    var now=Date.now();
+    var shown=0;
+    for(var i=0;i<h.time.length&&shown<8;i++){
+      var ts=new Date(h.time[i]).getTime();
+      if(ts<now-1800000)continue;
+      steps.push({
+        time:h.time[i].slice(11,16),
+        temp:Math.round(h.temperature_2m[i]),
+        wind:Math.round(h.wind_speed_10m[i]),
+        precip:h.precipitation[i]||0,
+        clouds:h.cloud_cover[i]||0,
+        wdir:0
+      });
+      shown++;
+    }
+  } else if(wxData.ts){
+    var now=Date.now(),startIdx=0;
+    for(var i=0;i<wxData.ts.length;i++){if(wxData.ts[i]<=now)startIdx=i;}
+    var shown=0;
+    for(var i=startIdx;i<wxData.ts.length&&shown<8;i++){
+      var t=new Date(wxData.ts[i]);
+      steps.push({
+        time:String(t.getHours()).padStart(2,'0')+':00',
+        temp:wxData['temp-surface']?Math.round(wxData['temp-surface'][i]-273.15):'--',
+        wind:wxData['wind-surface']?Math.round(wxData['wind-surface'][i]):'--',
+        precip:wxData['precip-surface']?wxData['precip-surface'][i]:0,
+        clouds:wxData['clouds-surface']?wxData['clouds-surface'][i]:0,
+        wdir:wxData['windDir-surface']?wxData['windDir-surface'][i]:0
+      });
+      shown++;
+    }
   }
 
-  // Показываем 8 шагов по 3 часа
-  var shown=0;
-  for(var i=startIdx;i<wxData.ts.length&&shown<8;i++){
-    var t=new Date(wxData.ts[i]);
-    var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][i]-273.15):'--';
-    var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][i]):'--';
-    var precip=wxData['precip-surface']?wxData['precip-surface'][i]:0;
-    var clouds=wxData['clouds-surface']?wxData['clouds-surface'][i]:0;
-    var wdir=wxData['windDir-surface']?wxData['windDir-surface'][i]:0;
-    var icon=wxGetIcon(precip,wind,clouds,temp);
-    var h=String(t.getHours()).padStart(2,'0')+':00';
-
+  steps.forEach(function(s){
+    var icon=wxGetIcon(s.precip,s.wind,s.clouds,s.temp);
     var col=document.createElement('div');
     col.style.cssText='flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)';
-    col.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,.5)">'+h+'</span>'
+    col.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,.5)">'+s.time+'</span>'
       +'<span style="font-size:20px">'+icon+'</span>'
-      +'<span style="font-size:12px;font-weight:700;color:#22d3ee">'+temp+'°</span>'
-      +'<span style="font-size:9px;color:rgba(255,255,255,.6)">'+wind+' m/s</span>'
-      +(precip>0.05?'<span style="font-size:9px;color:#60a5fa">'+precip.toFixed(1)+'mm</span>':'<span style="font-size:9px;color:rgba(255,255,255,.2)">—</span>');
+      +'<span style="font-size:12px;font-weight:700;color:#22d3ee">'+s.temp+'°</span>'
+      +'<span style="font-size:9px;color:rgba(255,255,255,.6)">'+s.wind+' m/s</span>'
+      +(s.precip>0.05?'<span style="font-size:9px;color:#60a5fa">'+Number(s.precip).toFixed(1)+'mm</span>':'<span style="font-size:9px;color:rgba(255,255,255,.2)">—</span>');
     forecastEl.appendChild(col);
-    shown++;
-  }
+  });
 
   // Детали текущего момента
-  var i=startIdx;
-  var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][i]-273.15):'--';
-  var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][i]):'--';
-  var wdir=wxData['windDir-surface']?wxWindDir(wxData['windDir-surface'][i]):'--';
-  var clouds=wxData['clouds-surface']?Math.round(wxData['clouds-surface'][i]):'--';
-  var precip=wxData['precip-surface']?wxData['precip-surface'][i].toFixed(2):'0';
-
+  var cur=wxGetCurrent();
+  if(!cur)return;
   var items=[
-    {l:'Temperature',v:temp+'°C',ic:'🌡'},
-    {l:'Wind',v:wind+' m/s '+wdir,ic:'💨'},
-    {l:'Clouds',v:clouds+'%',ic:'☁️'},
-    {l:'Precip',v:precip+' mm',ic:'🌧'}
+    {l:'Temperature',v:cur.temp+'°C',ic:'🌡'},
+    {l:'Wind',v:cur.wind+' m/s '+(cur.wdir?wxWindDir(cur.wdir):''),ic:'💨'},
+    {l:'Clouds',v:cur.clouds+'%',ic:'☁️'},
+    {l:'Precip',v:Number(cur.precip).toFixed(2)+' mm',ic:'🌧'}
   ];
   items.forEach(function(it){
     var d=document.createElement('div');
