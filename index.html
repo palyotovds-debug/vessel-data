@@ -394,8 +394,8 @@ var V=[],S={},EX={},COLLAPSED={};
 var cloudQueue=null,cloudRetry=0;
 var etaEditRow=-1;
 
-var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
-var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#fff1f2" stroke="#fca5a5" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/></svg>';
+var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(244,63,94,0.12)" stroke="rgba(244,63,94,0.5)" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="#fb7185" stroke-width="2.2" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="#fb7185" stroke-width="2.2" stroke-linecap="round"/></svg>';
 var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
 var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 
@@ -692,7 +692,7 @@ function renderVesselRow(v,isSailed){
   else{cellBg='rgba(255,255,255,0.04)';cellBo='rgba(255,255,255,0.08)';vcBg='rgba(255,255,255,0.06)';vcBo='rgba(255,255,255,0.08)';}
 
   var allChecked=!isSailed&&DOCS.every(function(d){return gs(ek,d);});
-  var tickBg=allChecked?'#dcfce7':cellBg,tickBo=allChecked?'#86efac':cellBo;
+  var tickBg=allChecked?'rgba(34,197,94,0.12)':cellBg,tickBo=allChecked?'rgba(34,197,94,0.35)':cellBo;
 
   var h='<tr>';
 
