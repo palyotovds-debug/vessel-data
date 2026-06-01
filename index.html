@@ -234,9 +234,9 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
             <span id="wxWind" style="font-size:9px;color:rgba(255,255,255,.5)">wind -- m/s</span>
           </div>
         </div>
-        <div id="wxDrop" style="display:none;position:absolute;top:calc(100% + 12px);left:0;width:520px;background:rgba(3,20,35,.95);backdrop-filter:blur(20px);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:14px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📍 Chornomorsk — 6h forecast</div>
-          <div id="wxForecast" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+        <div id="wxDrop" style="display:none;position:absolute;top:calc(100% + 12px);left:0;width:480px;background:rgba(3,20,35,.95);backdrop-filter:blur(20px);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:14px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📍 Chornomorsk — Forecast</div>
+          <div id="wxForecast" style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px"></div>
           <div id="wxDetails" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"></div>
         </div>
       </div>
@@ -1689,7 +1689,7 @@ function doWxRenderDrop(){
   steps.forEach(function(s){
     var icon=wxGetIcon(s.precip,s.wind,s.clouds,s.temp);
     var col=document.createElement('div');
-    col.style.cssText='flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)';
+    col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)';
     col.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,.5)">'+s.time+'</span>'
       +'<span style="font-size:20px">'+icon+'</span>'
       +'<span style="font-size:12px;font-weight:700;color:#22d3ee">'+s.temp+'°</span>'
