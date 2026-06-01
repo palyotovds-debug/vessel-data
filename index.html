@@ -218,7 +218,30 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
       <path d="M18 54 L26 72 L74 72 L82 54 Z" fill="white" opacity="0.95"/>
     </svg>
   </div>
-  <div class="tt"><h1>AGENCY PORTAL</h1><p>Port Agency Document Tracker</p></div>
+  <div class="tt" style="display:flex;align-items:center;gap:16px">
+    <div><h1>AGENCY PORTAL</h1><p>Port Agency Document Tracker</p></div>
+    <div id="tbClock" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;opacity:.85;border-left:1px solid rgba(255,255,255,.12);padding-left:16px">
+      <span id="tbDate" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.7)"></span>
+      <span id="tbTime" style="font-size:14px;font-weight:700;color:#22d3ee;letter-spacing:.05em;font-variant-numeric:tabular-nums"></span>
+    </div>
+  </div>
+
+  <!-- Weather widget -->
+  <div id="wxBtn" style="position:relative;margin-left:4px;cursor:pointer" onmouseenter="doWxShow()" onmouseleave="doWxHide()">
+    <div id="wxPill" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:24px;border:1px solid rgba(34,211,238,.25);background:rgba(8,145,178,.08);transition:all .2s">
+      <span id="wxIcon" style="font-size:16px">🌡</span>
+      <div style="display:flex;flex-direction:column;line-height:1.2">
+        <span id="wxTemp" style="font-size:13px;font-weight:700;color:#22d3ee">--°C</span>
+        <span id="wxWind" style="font-size:9px;color:rgba(255,255,255,.5)">wind -- m/s</span>
+      </div>
+    </div>
+    <!-- Dropdown forecast -->
+    <div id="wxDrop" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:520px;background:rgba(3,20,35,.95);backdrop-filter:blur(20px);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:14px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📍 Chornomorsk — 6h forecast</div>
+      <div id="wxForecast" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+      <div id="wxDetails" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"></div>
+    </div>
+  </div>
   <button class="tb" id="btnRefresh" onclick="doManualRefresh()">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     Обновить
@@ -1550,6 +1573,160 @@ function doHideLogin(){
   document.getElementById('loginScreen').classList.add('hidden');
   doLoad();
 }
+
+// ── Weather (Windy Point Forecast API) ──
+var WX_KEY='Mc6FW3CVOfwMpGafNoHBZPO6YXzC3DVk';
+var WX_LAT=46.301, WX_LON=30.655;
+var wxData=null, wxHideTimer=null;
+
+var WX_ICONS={
+  clearDay:'☀️', clearNight:'🌙', partlyCloudyDay:'⛅', partlyCloudyNight:'🌤',
+  cloudy:'☁️', rain:'🌧', drizzle:'🌦', snow:'❄️', sleet:'🌨',
+  wind:'💨', fog:'🌫', thunder:'⛈', default:'🌡'
+};
+
+function wxGetIcon(precip, wind, cloud, temp){
+  if(precip>1) return '🌧';
+  if(precip>0.1) return '🌦';
+  if(wind>12) return '💨';
+  if(cloud>80) return '☁️';
+  if(cloud>40) return '⛅';
+  return '☀️';
+}
+
+function wxWindDir(deg){
+  var dirs=['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg/45)%8]||'';
+}
+
+function doWxFetch(){
+  fetch('https://api.windy.com/api/point-forecast/v2',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      lat:WX_LAT, lon:WX_LON,
+      model:'gfs',
+      parameters:['temp','wind','windDir','precip','clouds'],
+      levels:['surface'],
+      key:WX_KEY
+    })
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    wxData=d;
+    doWxUpdate();
+  })
+  .catch(function(e){console.warn('Weather error:',e);});
+}
+
+function doWxUpdate(){
+  if(!wxData||!wxData.ts)return;
+  var now=Date.now();
+  // Найдём ближайший timestep
+  var idx=0;
+  for(var i=0;i<wxData.ts.length;i++){
+    if(wxData.ts[i]<=now)idx=i;
+  }
+  var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][idx]-273.15):null;
+  var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][idx]):null;
+  var precip=wxData['precip-surface']?wxData['precip-surface'][idx]:0;
+  var clouds=wxData['clouds-surface']?wxData['clouds-surface'][idx]:0;
+
+  if(temp!==null){
+    var icon=wxGetIcon(precip,wind,clouds,temp);
+    document.getElementById('wxIcon').textContent=icon;
+    document.getElementById('wxTemp').textContent=temp+'°C';
+    document.getElementById('wxWind').textContent='wind '+(wind||'--')+' m/s';
+  }
+}
+
+function doWxRenderDrop(){
+  if(!wxData||!wxData.ts)return;
+  var now=Date.now();
+  var forecastEl=document.getElementById('wxForecast');
+  var detailsEl=document.getElementById('wxDetails');
+  forecastEl.innerHTML='';
+  detailsEl.innerHTML='';
+
+  // Найдём текущий индекс
+  var startIdx=0;
+  for(var i=0;i<wxData.ts.length;i++){
+    if(wxData.ts[i]<=now)startIdx=i;
+  }
+
+  // Показываем 8 шагов по 3 часа
+  var shown=0;
+  for(var i=startIdx;i<wxData.ts.length&&shown<8;i++){
+    var t=new Date(wxData.ts[i]);
+    var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][i]-273.15):'--';
+    var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][i]):'--';
+    var precip=wxData['precip-surface']?wxData['precip-surface'][i]:0;
+    var clouds=wxData['clouds-surface']?wxData['clouds-surface'][i]:0;
+    var wdir=wxData['windDir-surface']?wxData['windDir-surface'][i]:0;
+    var icon=wxGetIcon(precip,wind,clouds,temp);
+    var h=String(t.getHours()).padStart(2,'0')+':00';
+
+    var col=document.createElement('div');
+    col.style.cssText='flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)';
+    col.innerHTML='<span style="font-size:9px;color:rgba(255,255,255,.5)">'+h+'</span>'
+      +'<span style="font-size:20px">'+icon+'</span>'
+      +'<span style="font-size:12px;font-weight:700;color:#22d3ee">'+temp+'°</span>'
+      +'<span style="font-size:9px;color:rgba(255,255,255,.6)">'+wind+' m/s</span>'
+      +(precip>0.05?'<span style="font-size:9px;color:#60a5fa">'+precip.toFixed(1)+'mm</span>':'<span style="font-size:9px;color:rgba(255,255,255,.2)">—</span>');
+    forecastEl.appendChild(col);
+    shown++;
+  }
+
+  // Детали текущего момента
+  var i=startIdx;
+  var temp=wxData['temp-surface']?Math.round(wxData['temp-surface'][i]-273.15):'--';
+  var wind=wxData['wind-surface']?Math.round(wxData['wind-surface'][i]):'--';
+  var wdir=wxData['windDir-surface']?wxWindDir(wxData['windDir-surface'][i]):'--';
+  var clouds=wxData['clouds-surface']?Math.round(wxData['clouds-surface'][i]):'--';
+  var precip=wxData['precip-surface']?wxData['precip-surface'][i].toFixed(2):'0';
+
+  var items=[
+    {l:'Temperature',v:temp+'°C',ic:'🌡'},
+    {l:'Wind',v:wind+' m/s '+wdir,ic:'💨'},
+    {l:'Clouds',v:clouds+'%',ic:'☁️'},
+    {l:'Precip',v:precip+' mm',ic:'🌧'}
+  ];
+  items.forEach(function(it){
+    var d=document.createElement('div');
+    d.style.cssText='padding:8px;border-radius:8px;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.12);text-align:center';
+    d.innerHTML='<div style="font-size:14px">'+it.ic+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#22d3ee;margin:2px 0">'+it.v+'</div>'
+      +'<div style="font-size:9px;color:rgba(255,255,255,.4)">'+it.l+'</div>';
+    detailsEl.appendChild(d);
+  });
+}
+
+function doWxShow(){
+  clearTimeout(wxHideTimer);
+  document.getElementById('wxDrop').style.display='block';
+  doWxRenderDrop();
+}
+function doWxHide(){
+  wxHideTimer=setTimeout(function(){
+    document.getElementById('wxDrop').style.display='none';
+  },300);
+}
+
+// Загружаем погоду сразу и каждые 30 минут
+doWxFetch();
+setInterval(doWxFetch,30*60*1000);
+var DAYS_UK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MONTHS_UK=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function updateClock(){
+  var now=new Date();
+  var dateEl=document.getElementById('tbDate');
+  var timeEl=document.getElementById('tbTime');
+  if(!dateEl||!timeEl)return;
+  dateEl.textContent=DAYS_UK[now.getDay()]+', '+now.getDate()+' '+MONTHS_UK[now.getMonth()]+' '+now.getFullYear();
+  timeEl.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+updateClock();
+setInterval(updateClock,1000);
 
 doLoad();
 </script>
