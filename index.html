@@ -220,26 +220,26 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
   </div>
   <div class="tt" style="display:flex;align-items:center;gap:16px">
     <div><h1>AGENCY PORTAL</h1><p>Port Agency Document Tracker</p></div>
-    <div id="tbClock" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;opacity:.85;border-left:1px solid rgba(255,255,255,.12);padding-left:16px">
-      <span id="tbDate" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.7)"></span>
-      <span id="tbTime" style="font-size:14px;font-weight:700;color:#22d3ee;letter-spacing:.05em;font-variant-numeric:tabular-nums"></span>
-    </div>
-  </div>
-
-  <!-- Weather widget -->
-  <div id="wxBtn" style="position:relative;margin-left:4px;cursor:pointer" onmouseenter="doWxShow()" onmouseleave="doWxHide()">
-    <div id="wxPill" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:24px;border:1px solid rgba(34,211,238,.25);background:rgba(8,145,178,.08);transition:all .2s">
-      <span id="wxIcon" style="font-size:16px">🌡</span>
-      <div style="display:flex;flex-direction:column;line-height:1.2">
-        <span id="wxTemp" style="font-size:13px;font-weight:700;color:#22d3ee">--°C</span>
-        <span id="wxWind" style="font-size:9px;color:rgba(255,255,255,.5)">wind -- m/s</span>
+    <div style="display:flex;align-items:center;gap:12px;border-left:1px solid rgba(255,255,255,.12);padding-left:16px">
+      <div id="tbClock" style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.3">
+        <span id="tbDate" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.7)"></span>
+        <span id="tbTime" style="font-size:14px;font-weight:700;color:#22d3ee;letter-spacing:.05em;font-variant-numeric:tabular-nums"></span>
       </div>
-    </div>
-    <!-- Dropdown forecast -->
-    <div id="wxDrop" style="display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:520px;background:rgba(3,20,35,.95);backdrop-filter:blur(20px);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:14px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📍 Chornomorsk — 6h forecast</div>
-      <div id="wxForecast" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
-      <div id="wxDetails" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"></div>
+      <!-- Weather widget -->
+      <div id="wxBtn" style="position:relative;cursor:pointer;border-left:1px solid rgba(255,255,255,.12);padding-left:12px" onmouseenter="doWxShow()" onmouseleave="doWxHide()">
+        <div id="wxPill" style="display:flex;align-items:center;gap:6px">
+          <span id="wxIcon" style="font-size:18px">🌡</span>
+          <div style="display:flex;flex-direction:column;line-height:1.2">
+            <span id="wxTemp" style="font-size:13px;font-weight:700;color:#22d3ee">--°C</span>
+            <span id="wxWind" style="font-size:9px;color:rgba(255,255,255,.5)">wind -- m/s</span>
+          </div>
+        </div>
+        <div id="wxDrop" style="display:none;position:absolute;top:calc(100% + 12px);left:0;width:520px;background:rgba(3,20,35,.95);backdrop-filter:blur(20px);border:1px solid rgba(34,211,238,.2);border-radius:12px;padding:14px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📍 Chornomorsk — 6h forecast</div>
+          <div id="wxForecast" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+          <div id="wxDetails" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"></div>
+        </div>
+      </div>
     </div>
   </div>
   <button class="tb" id="btnRefresh" onclick="doManualRefresh()">
@@ -1600,19 +1600,10 @@ function wxWindDir(deg){
 }
 
 function doWxFetch(){
-  fetch('https://api.windy.com/api/point-forecast/v2',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      lat:WX_LAT, lon:WX_LON,
-      model:'gfs',
-      parameters:['temp','wind','windDir','precip','clouds'],
-      levels:['surface'],
-      key:WX_KEY
-    })
-  })
+  fetch('/api/weather')
   .then(function(r){return r.json();})
   .then(function(d){
+    if(d.error)throw new Error(d.error);
     wxData=d;
     doWxUpdate();
   })
