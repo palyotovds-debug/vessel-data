@@ -1047,7 +1047,59 @@ function doConfirmSail(){
   doToast('✅ Sailing data сохранена');
 }
 
-function doTick(ve,de){var v=decodeURIComponent(ve),d=decodeURIComponent(de);S[sk(v,d)]=!gs(v,d);doRender();doSave();}
+function doTick(ve,de){
+  var v=decodeURIComponent(ve),d=decodeURIComponent(de);
+  var key=sk(v,d);
+  S[key]=!S[key];
+  doSave();
+
+  // Обновляем только конкретную ячейку в DOM
+  var cells=document.querySelectorAll('td.cc');
+  cells.forEach(function(td){
+    var fn=td.getAttribute('onclick')||'';
+    if(fn.indexOf(ve)!==-1&&fn.indexOf(de)!==-1){
+      var ok=S[key];
+      var tw=td.querySelector('.tw');
+      if(tw){
+        tw.style.transition='transform .15s ease,opacity .15s ease';
+        tw.style.transform='scale(0.5)';
+        tw.style.opacity='0';
+        setTimeout(function(){
+          tw.innerHTML=ok?SVG_CHECK:SVG_CROSS;
+          tw.style.transform='scale(1)';
+          tw.style.opacity='1';
+        },100);
+      }
+      // Обновляем фон строки если все галочки
+      var row=td.closest('tr');
+      if(row){
+        var ek=null;
+        var vcTd=row.querySelector('td.vc');
+        if(vcTd){
+          var vm=vcTd.querySelector('.vm');
+          if(vm){
+            var onclick=vm.getAttribute('onclick')||'';
+            var m=onclick.match(/doTogExp\((\d+)\)/);
+            if(m){
+              var ri=parseInt(m[1]);
+              var v2=V[ri];
+              if(v2){
+                var ek2=v2.name+'|||'+v2.addedDate;
+                var allChecked=DOCS.every(function(dd){return gs(ek2,dd);});
+                var bg=allChecked?'rgba(34,197,94,0.12)':'rgba(255,255,255,0.04)';
+                var bo=allChecked?'rgba(34,197,94,0.35)':'rgba(255,255,255,0.08)';
+                row.querySelectorAll('td.cc,td.xc').forEach(function(c){
+                  c.style.background=bg;
+                  c.style.borderColor=bo;
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+}
 function doTogExp(i){
   if(document.getElementById('sailModal').classList.contains('o'))return;
   var v=V[i];
