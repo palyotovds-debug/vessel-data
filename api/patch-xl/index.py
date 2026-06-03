@@ -7,7 +7,7 @@ def esc(s):
 
 
 def replace_cell_inline(xml, cell_ref, value, style):
-    """Заменяет ячейку на inlineStr. Если не найдена — вставляет в строку."""
+    """Заменяет ячейку на inlineStr. Если нет — вставляет в строку."""
     safe = esc(value)
     new_cell = '<c r="'+cell_ref+'" s="'+style+'" t="inlineStr"><is><t>'+safe+'</t></is></c>'
     replaced = re.sub(r'<c r="'+re.escape(cell_ref)+r'"[^/]*/>', new_cell, xml)
@@ -17,27 +17,13 @@ def replace_cell_inline(xml, cell_ref, value, style):
     if replaced != xml:
         return replaced
     row_num = re.search(r'\d+', cell_ref).group()
-    row_pat = r'(<row r="'+row_num+r'"[^>]*>)(.*?)(</row>)'
     def insert_cell(m):
         return m.group(1) + m.group(2) + new_cell + m.group(3)
-    return re.sub(row_pat, insert_cell, xml, flags=re.DOTALL)
+    return re.sub(r'(<row r="'+row_num+r'"[^>]*>)(.*?)(</row>)', insert_cell, xml, flags=re.DOTALL)
 
 
 def update_formula_v(xml, cell_ref, new_value):
-    """Обновляет <v> в ячейке с формулой (любой тип), сохраняя формулу."""
-    safe = esc(new_value)
-    # Заменяем <v>...</v> внутри ячейки с формулой
-    pattern = r'(<c r="'+re.escape(cell_ref)+r'"[^>]*>(?:(?!<v>).)*?<f[^>]*>[^<]*</f>[^<]*)<v>[^<]*</v>'
-    replaced = re.sub(pattern, r'\g<1><v>'+safe+'</v>', xml, flags=re.DOTALL)
-    if replaced != xml:
-        return replaced
-    # Альтернативный порядок f/v
-    pattern2 = r'(<c r="'+re.escape(cell_ref)+r'"[^>]*>.*?)<v>[^<]*</v>(.*?</c>)'
-    return re.sub(pattern2, r'<v>'+safe+'</v>'.replace('', '\1').replace('', '\2'), xml, flags=re.DOTALL)
-
-
-def replace_formula_str_v(xml, cell_ref, new_value):
-    """Обновляет <v> в ячейке t="str" с формулой."""
+    """Обновляет кешированное <v> в ячейке с формулой."""
     safe = esc(new_value)
     def repl(m):
         return m.group(1) + safe + m.group(2)
@@ -47,29 +33,23 @@ def replace_formula_str_v(xml, cell_ref, new_value):
 
 
 def replace_ss_string(ss_xml, ss_list, idx, new_value):
-    """Заменяет текст в конкретном <si> sharedStrings по индексу."""
+    """Заменяет текст конкретного <si> в sharedStrings."""
     if idx >= len(ss_list):
         return ss_xml
     old_si = ss_list[idx]
     safe = esc(new_value)
-    new_si = '<si><t>'+safe+'</t></si>'
-    return ss_xml.replace(old_si, new_si, 1)
+    return ss_xml.replace(old_si, '<si><t>'+safe+'</t></si>', 1)
 
 
 def set_col_width(xml, col_num, width):
-    """Устанавливает ширину конкретной колонки."""
-    w = str(width)
-    n = str(col_num)
-    replaced = re.sub(
+    w, n = str(width), str(col_num)
+    for pat in [
         r'(<col[^>]+min="'+n+r'"[^>]+max="'+n+r'"[^>]+)width="[^"]+"',
-        r'\1width="'+w+'"', xml)
-    if replaced != xml:
-        return replaced
-    replaced = re.sub(
         r'(<col[^>]+max="'+n+r'"[^>]+min="'+n+r'"[^>]+)width="[^"]+"',
-        r'\1width="'+w+'"', xml)
-    if replaced != xml:
-        return replaced
+    ]:
+        r = re.sub(pat, r'\1width="'+w+'"', xml)
+        if r != xml:
+            return r
     new_col = '<col min="'+n+'" max="'+n+'" width="'+w+'" customWidth="1"/>'
     if '<cols>' in xml:
         return xml.replace('</cols>', new_col+'</cols>')
@@ -78,11 +58,11 @@ def set_col_width(xml, col_num, width):
 
 def patch_xlsm(file_bytes, params):
     vyx_num   = params.get('vyxNum', '')
-    fmt_date  = params.get('fmtDate', '')   # dd.mm.yyyy — дата заявки
-    time_val  = params.get('time', '17:00')
-    berth     = params.get('berth', '')
-    sign      = params.get('sign', '')
-    today_fmt = params.get('todayFmt', '')  # dd.mm.yyyy — сегодня
+    fmt_date  = params.get('fmtDate', '')    # dd.mm.yyyy — дата заявки (ETA/прибытие)
+    time_val  = params.get('time', '17:00')  # HH:MM
+    berth     = params.get('berth', '')      # номер причала
+    sign      = params.get('sign', '')       # подпись
+    today_fmt = params.get('todayFmt', '')   # dd.mm.yyyy — сегодня (дата документа)
     selected  = params.get('selectedSheets', [])
 
     orig     = zipfile.ZipFile(io.BytesIO(file_bytes))
@@ -92,7 +72,7 @@ def patch_xlsm(file_bytes, params):
     smap     = re.findall(r'name="([^"]+)"[^>]+r:id="([^"]+)"', wb_xml)
 
     keep = set(['DATA'] + selected)
-    be   = esc(berth) if berth else ''
+    be   = berth.strip() if berth else ''
 
     name_to_file = {}
     for name, rid in smap:
@@ -107,34 +87,31 @@ def patch_xlsm(file_bytes, params):
             if f:
                 excluded_files.add(('xl/'+f) if not f.startswith('xl/') else f)
 
-    selected_files = set()
-    for name in selected:
-        f = name_to_file.get(name, '')
-        if f:
-            selected_files.add(f)
+    selected_files = set(
+        name_to_file[n] for n in selected if n in name_to_file
+    )
 
-    # ── Патч sharedStrings ───────────────────────────────────────────────
+    # ── Подготовка sharedStrings ─────────────────────────────────────────
     ss_xml  = orig.read('xl/sharedStrings.xml').decode('utf-8')
     ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
 
     # Подписи
-    # ss[343] = "Олексій АЛЬОХІН" (Букс бласт G41, Шварт ТБТ H37, LINE BOAT I34, Шварт Адм F31)
-    # ss[517] = "Олександр ЛИТВИНОВ" (Зняття B31)
-    # ss[348] = "Морський агент: Олексій АЛЬОХІН" (Букс порт A28)
+    # ss[343] = "Олексій АЛЬОХІН"  — используется в Букс бласт G41, Шварт ТБТ H37, LINE BOAT I34, Шварт Адм F31
+    # ss[517] = "Олександр ЛИТВИНОВ" — Зняття B31
+    # ss[348] = "Морський агент: Олексій АЛЬОХІН" — Букс порт A28
     if sign:
         sign_name = sign.replace('Морський агент: ', '').strip()
         sign_full = 'Морський агент: ' + sign_name
         for idx in [343, 517]:
             ss_xml = replace_ss_string(ss_xml, ss_list, idx, sign_name)
             ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
-        for idx in [348]:
-            ss_xml = replace_ss_string(ss_xml, ss_list, idx, sign_full)
-            ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
+        ss_xml = replace_ss_string(ss_xml, ss_list, 348, sign_full)
+        ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
 
     # Вих.№
-    # ss[20]  = только номер "334/15"              → Шварт Адм C10
-    # ss[344] = "Вих. № 334/17"                    → Букс порт J9
-    # ss[520] = "Вих. № 211/3 від 18.05.2026"      → Букс бласт A8
+    # ss[20]  = только номер "334/15"             — Шварт Адм C10
+    # ss[344] = "Вих. № 334/17"                   — Букс порт J9
+    # ss[520] = "Вих. № 211/3 від 18.05.2026"     — Букс бласт A8
     if vyx_num:
         ss_xml = replace_ss_string(ss_xml, ss_list, 20, vyx_num)
         ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
@@ -144,24 +121,28 @@ def patch_xlsm(file_bytes, params):
             ss_xml = replace_ss_string(ss_xml, ss_list, 520, 'Вих. № '+vyx_num+' від '+today_fmt)
             ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
 
-    # Дата+время в текстах (Шварт ТБТ, LINE BOAT и др.)
+    # Дата+время заявки (ETA)
+    # ss[521] = "19.05.2026 о 17:00"            — Букс бласт F34
+    # ss[522] = "«23» 05.2026р. о 17:00 год."   — LINE BOAT A26
     if fmt_date:
-        ss_xml = re.sub(
-            r'\d{2}\.\d{2}\.\d{4} о \d{2}:\d{2}',
-            fmt_date+' о '+time_val, ss_xml)
+        ss_xml = replace_ss_string(ss_xml, ss_list, 521, fmt_date+' о '+time_val)
+        ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
         p = fmt_date.split('.')
         if len(p) == 3:
-            ss_xml = re.sub(
-                r'«\d+» \d+\.\d+р\. о \d{2}:\d{2} год\.',
-                '«'+p[0]+'» '+p[1]+'.'+p[2]+'р. о '+time_val+' год.', ss_xml)
+            lbl = '«'+p[0]+'» '+p[1]+'.'+p[2]+'р. о '+time_val+' год.'
+            ss_xml = replace_ss_string(ss_xml, ss_list, 522, lbl)
+            ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
 
-    # Причал в текстах
+    # Причал
+    # ss[519] = "14/15; 16; 17" — используется в DATA B37/C37/D37/E37
+    # Это основной источник для всех формул кроме LINE BOAT
     if be:
-        ss_xml = re.sub(r'<si><t>14/15[^<]*</t></si>', '<si><t>'+be+'</t></si>', ss_xml)
+        ss_xml = replace_ss_string(ss_xml, ss_list, 519, be)
+        ss_list = re.findall(r'<si>.*?</si>', ss_xml, re.DOTALL)
 
     ss_bytes = ss_xml.encode('utf-8')
 
-    # ── Сборка нового zip ────────────────────────────────────────────────
+    # ── Сборка zip ───────────────────────────────────────────────────────
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w', allowZip64=True) as zout:
         for item in orig.infolist():
@@ -172,68 +153,214 @@ def patch_xlsm(file_bytes, params):
 
             data = orig.read(fn)
 
+            # sharedStrings
             if fn == 'xl/sharedStrings.xml':
                 data = ss_bytes
 
+            # ── DATA sheet ───────────────────────────────────────────────
             elif fn == 'xl/worksheets/sheet1.xml':
-                # DATA лист — вставляем все значения
                 t = data.decode('utf-8')
+                # B4 = дата заявки (отображение в DATA)
                 if fmt_date:
                     t = replace_cell_inline(t, 'B4', fmt_date, '260')
+                    # G4 = дата заявки (тянут формулы: Шварт Адм B21, Шварт ТБТ E16)
                     t = replace_cell_inline(t, 'G4', fmt_date, '191')
-                    # G2 = дата today (тянут формулы листов: DATA!G2)
-                    t = replace_cell_inline(t, 'G2', today_fmt if today_fmt else fmt_date, '188')
-                if vyx_num:
-                    # H2 = Вих.№ (тянут формулы: DATA!H2)
-                    t = replace_cell_inline(t, 'H2', vyx_num, '203')
+                # G5 = время (тянут формулы: Шварт Адм B21, Шварт ТБТ E16)
                 if time_val:
                     t = replace_cell_inline(t, 'G5', time_val, '191')
+                # G2 = дата today — ВАЖНО: НЕ вставляем как inlineStr, т.к. формулы
+                # DATA!G2 (Шварт Адм C11, Букс порт B9) ожидают текст.
+                # Вставляем как inlineStr с today_fmt
+                if today_fmt:
+                    t = replace_cell_inline(t, 'G2', today_fmt, '188')
+                # H2 = Вих.№ (на случай если где-то ссылается)
+                if vyx_num:
+                    t = replace_cell_inline(t, 'H2', vyx_num, '203')
                 data = t.encode('utf-8')
 
+            # ── Шварт Адм прих (sheet14) ────────────────────────────────
             elif fn == 'xl/worksheets/sheet14.xml' and fn in selected_files:
-                # Шварт Адм прих: C11 = DATA!G2 (дата today)
                 t = data.decode('utf-8')
+                # C11 = DATA!G2 = дата today
                 if today_fmt:
                     t = update_formula_v(t, 'C11', today_fmt)
+                # B21 = "Очікувальний час постановки: {date}р., о {time}"
+                # формула использует DATA!G4 и DATA!G5
+                if fmt_date and time_val:
+                    new_v21 = ('Очікувальний час постановки:   '
+                               +fmt_date+'р., о '+time_val
+                               +'                                                                        Характеристика судна:')
+                    t = update_formula_v(t, 'B21', new_v21)
+                # G12 = текст с причалом (формула DATA!E37)
+                if be:
+                    # обновляем <v> — формула подтянет при открытии
+                    old_v = re.search(r'<c r="G12"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'G12', new_text)
                 data = t.encode('utf-8')
 
+            # ── Шварт Адм отход (sheet15) ───────────────────────────────
             elif fn == 'xl/worksheets/sheet15.xml' and fn in selected_files:
-                # Шварт Адм отход: C9 = DATA!G2
                 t = data.decode('utf-8')
                 if today_fmt:
                     t = update_formula_v(t, 'C9', today_fmt)
                 data = t.encode('utf-8')
 
+            # ── Букс порт прих (sheet16) ─────────────────────────────────
             elif fn == 'xl/worksheets/sheet16.xml' and fn in selected_files:
-                # Букс порт прих: B9 = DATA!G2 (дата today), I31 = DATA!H2
                 t = data.decode('utf-8')
+                # B9 = DATA!G2 = today
                 if today_fmt:
                     t = update_formula_v(t, 'B9', today_fmt)
+                # D27 = DATA!E37 = причал (t="str")
+                if be:
+                    t = update_formula_v(t, 'D27', be)
+                # B27 = DATA!E37 (ss ячейка, ссылается на DATA)
+                # I31 = DATA!H2 = today дата внизу
+                if today_fmt:
                     t = update_formula_v(t, 'I31', today_fmt)
+                # B13 — длинный текст с причалом
+                if be:
+                    old_v = re.search(r'<c r="B13"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'B13', new_text)
                 data = t.encode('utf-8')
 
+            # ── Букс порт отх (sheet17) ──────────────────────────────────
             elif fn == 'xl/worksheets/sheet17.xml' and fn in selected_files:
-                # Букс порт отх: C9 = DATA!G2
                 t = data.decode('utf-8')
                 if today_fmt:
                     t = update_formula_v(t, 'C9', today_fmt)
+                if be:
+                    t = update_formula_v(t, 'B23', be)
+                    old_v = re.search(r'<c r="B13"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'B13', new_text)
                 data = t.encode('utf-8')
 
-            elif fn in ('xl/worksheets/sheet18.xml', 'xl/worksheets/sheet19.xml') and fn in selected_files:
-                # Букс бласт: расширяем G(7) для подписи
+            # ── Букс бласт прих (sheet18) ───────────────────────────────
+            elif fn == 'xl/worksheets/sheet18.xml' and fn in selected_files:
                 t = data.decode('utf-8')
-                t = set_col_width(t, 7, 28.0)
+                # Причал в тексте D14/A18
+                if be:
+                    for ref in ['D14', 'A18']:
+                        old_v = re.search(r'<c r="'+ref+r'"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                        if old_v:
+                            new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                            t = update_formula_v(t, ref, new_text)
+                # Подпись G41 — расширяем мёрж вправо добавив colspan в ячейки
+                # Вместо расширения колонки — добавим ещё ячеек к мёржу через изменение mergeCell
+                t = re.sub(
+                    r'(<mergeCell ref="G41:)([^"]+)(")',
+                    r'\g<1>I41\3', t)
                 data = t.encode('utf-8')
 
-            elif fn in ('xl/worksheets/sheet28.xml', 'xl/worksheets/sheet29.xml') and fn in selected_files:
-                # Зняття порт/митн: A6 = формула WEEKNUM, A7 = формула TODAY()
+            # ── Букс бласт отход (sheet19) ──────────────────────────────
+            elif fn == 'xl/worksheets/sheet19.xml' and fn in selected_files:
+                t = data.decode('utf-8')
+                if be:
+                    for ref in ['D14', 'A18']:
+                        old_v = re.search(r'<c r="'+ref+r'"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                        if old_v:
+                            new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                            t = update_formula_v(t, ref, new_text)
+                t = re.sub(r'(<mergeCell ref="G41:)([^"]+)(")', r'\g<1>I41\3', t)
+                data = t.encode('utf-8')
+
+            # ── Шварт ТБТ прих (sheet20) ─────────────────────────────────
+            elif fn == 'xl/worksheets/sheet20.xml' and fn in selected_files:
+                t = data.decode('utf-8')
+                # E16 = большой текст с причалом и датой
+                if be or fmt_date or time_val:
+                    old_v = re.search(r'<c r="E16"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1)
+                        if be:
+                            new_text = new_text.replace('14/15; 16; 17', be).replace('14/15', be)
+                        if fmt_date:
+                            # В тексте есть "орієнтовний час прибуття ." — вставляем дату и время
+                            new_text = re.sub(
+                                r'орієнтовний час прибуття [^.]*\.',
+                                'орієнтовний час прибуття '+fmt_date+' о '+time_val+'.',
+                                new_text)
+                        t = update_formula_v(t, 'E16', new_text)
+                # B21 = текст с причалом
+                if be:
+                    old_v = re.search(r'<c r="B21"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'B21', new_text)
+                data = t.encode('utf-8')
+
+            # ── Шварт ТБТ отход (sheet21) ────────────────────────────────
+            elif fn == 'xl/worksheets/sheet21.xml' and fn in selected_files:
+                t = data.decode('utf-8')
+                if be or fmt_date or time_val:
+                    for ref in ['E16', 'B21']:
+                        old_v = re.search(r'<c r="'+ref+r'"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                        if old_v:
+                            new_text = old_v.group(1)
+                            if be:
+                                new_text = new_text.replace('14/15; 16; 17', be).replace('14/15', be)
+                            if fmt_date and ref == 'E16':
+                                new_text = re.sub(
+                                    r'орієнтовний час прибуття [^.]*\.',
+                                    'орієнтовний час прибуття '+fmt_date+' о '+time_val+'.',
+                                    new_text)
+                            t = update_formula_v(t, ref, new_text)
+                data = t.encode('utf-8')
+
+            # ── LINE BOAT (sheet25) ──────────────────────────────────────
+            elif fn == 'xl/worksheets/sheet25.xml' and fn in selected_files:
+                t = data.decode('utf-8')
+                # H15 — большой текст с причалом (жёстко "14/15" в формуле)
+                if be:
+                    old_v = re.search(r'<c r="H15"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15', be)
+                        t = update_formula_v(t, 'H15', new_text)
+                    # Также A20 (основной текст)
+                    old_v2 = re.search(r'<c r="A20"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v2:
+                        new_text2 = old_v2.group(1).replace('14/15', be)
+                        t = update_formula_v(t, 'A20', new_text2)
+                data = t.encode('utf-8')
+
+            # ── Зняття порт (sheet28) ────────────────────────────────────
+            elif fn == 'xl/worksheets/sheet28.xml' and fn in selected_files:
+                t = data.decode('utf-8')
+                # A6: формула WEEKNUM → <v>
+                if vyx_num:
+                    t = update_formula_v(t, 'A6', 'Вих. №'+vyx_num)
+                # A7: формула TODAY() → <v>
+                if today_fmt:
+                    t = update_formula_v(t, 'A7', 'Дата: '+today_fmt)
+                # A26: CONCATENATE с причалом
+                if be:
+                    old_v = re.search(r'<c r="A26"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'A26', new_text)
+                data = t.encode('utf-8')
+
+            # ── Зняття митн (sheet29) ────────────────────────────────────
+            elif fn == 'xl/worksheets/sheet29.xml' and fn in selected_files:
                 t = data.decode('utf-8')
                 if vyx_num:
-                    t = replace_formula_str_v(t, 'A6', 'Вих. №'+vyx_num)
+                    t = update_formula_v(t, 'A6', 'Вих. №'+vyx_num)
                 if today_fmt:
-                    t = replace_formula_str_v(t, 'A7', 'Дата: '+today_fmt)
+                    t = update_formula_v(t, 'A7', 'Дата: '+today_fmt)
+                if be:
+                    old_v = re.search(r'<c r="A26"[^>]*>.*?<v>([^<]*)</v>', t, re.DOTALL)
+                    if old_v:
+                        new_text = old_v.group(1).replace('14/15; 16; 17', be).replace('14/15', be)
+                        t = update_formula_v(t, 'A26', new_text)
                 data = t.encode('utf-8')
 
+            # ── workbook.xml ─────────────────────────────────────────────
             elif fn == 'xl/workbook.xml':
                 t = data.decode('utf-8')
                 for name, _ in smap:
@@ -243,6 +370,7 @@ def patch_xlsm(file_bytes, params):
                             '', t)
                 data = t.encode('utf-8')
 
+            # ── workbook.xml.rels ────────────────────────────────────────
             elif fn == 'xl/_rels/workbook.xml.rels':
                 t = data.decode('utf-8')
                 for name, rid in smap:
