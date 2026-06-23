@@ -444,7 +444,8 @@ var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circ
 var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
 var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 
-function newV(n,im){return{name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',maod:'',sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
+function genUid(){return 'v_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9);}
+function newV(n,im){return{uid:genUid(),name:n||'',imo:im||'',mmsi:'',type:'',flag:'',class:'',portreg:'',cs:'',dw:'',grt:'',nrt:'',loa:'',lbp:'',boa:'',dmd:'',tsum:'',owner:'',holds:'',volume:'',year:'',arr:'',dep:'',berth:'',cargo:'',cargoqty:'',etaswa:'',etaswatime:'',maod:'',sailedAt:'',sailCargo:'',sailQty:'',sailDrafts:'',sailSF:'',sailBLstatus:'',sailBLdate:'',addedDate:new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})};}
 function sk(n,d){return n+'|||'+d;}
 function gs(n,d){return!!S[sk(n,d)];}
 function ec(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -496,8 +497,10 @@ function fromSbRow(row){
   var v=newV();
   Object.keys(v).forEach(function(k){
     var sbKey=VESSEL_FIELDS_MAP[k]||k;
-    if(row[sbKey]!==undefined)v[k]=String(row[sbKey]);
+    if(row[sbKey]!==undefined&&row[sbKey]!==null)v[k]=String(row[sbKey]);
   });
+  // Если в БД uid пустой/отсутствует — сохраняем сгенерированный newV() uid (не затираем).
+  if(!v.uid||v.uid==='null'||v.uid==='undefined')v.uid=genUid();
   return v;
 }
 function sbHeaders(){
@@ -511,47 +514,54 @@ function sbHeaders(){
 
 function doSaveCloud(onDone){
   // ЗАЩИТА 1: не сохраняем, пока реальные данные не загружены.
-  // Иначе дефолтный/пустой набор затрёт настоящую базу.
   if(!cloudReady){
     console.warn('doSaveCloud: пропущено — данные ещё не загружены (cloudReady=false)');
     if(onDone)onDone(false);
     return;
   }
-  // ЗАЩИТА 2: никогда не пишем в облако пустой массив через delete+insert.
-  // Удаление последнего судна вручную обрабатывается отдельно (см. removeVessel).
-  if(!V||V.length===0){
-    console.warn('doSaveCloud: пропущено — пустой массив судов');
-    if(onDone)onDone(false);
-    return;
-  }
+  // ЗАЩИТА 2: гарантируем, что у каждого судна есть стабильный uid.
+  V.forEach(function(v){if(!v.uid)v.uid=genUid();});
   setSyncDot('busy');
 
   var vessels=V.map(function(v,i){return toSbRow(v,i);});
+  var uids=V.map(function(v){return v.uid;});
 
-  // Удаляем все суда
-  fetch(SB_URL+'/rest/v1/vessels?name=neq.XXXXNOTEXIST',{
-    method:'DELETE',headers:sbHeaders()
-  })
+  // ШАГ 1: UPSERT судов по uid (НЕ удаляем таблицу!).
+  // resolution=merge-duplicates + on_conflict=uid → существующие обновляются, новые добавляются.
+  var upsertHeaders=Object.assign({},sbHeaders(),{'Prefer':'resolution=merge-duplicates'});
+  (vessels.length
+    ? fetch(SB_URL+'/rest/v1/vessels?on_conflict=uid',{
+        method:'POST',headers:upsertHeaders,body:JSON.stringify(vessels)
+      }).then(function(r){if(!r.ok)throw new Error('upsert vessels HTTP '+r.status);})
+    : Promise.resolve()
+  )
   .then(function(){
-    if(!vessels.length)return Promise.resolve();
-    return fetch(SB_URL+'/rest/v1/vessels',{
-      method:'POST',
-      headers:sbHeaders(),
-      body:JSON.stringify(vessels)
-    });
-  })
-  .then(function(){
-    return fetch(SB_URL+'/rest/v1/doc_state?key=neq.XXXXNOTEXIST',{
+    // ШАГ 2: удаляем ТОЛЬКО те суда, которых больше нет в локальном списке.
+    // Если список пуст — пропускаем (защита от случайного обнуления).
+    if(!uids.length)return Promise.resolve();
+    var inList=uids.map(function(u){return '"'+u+'"';}).join(',');
+    return fetch(SB_URL+'/rest/v1/vessels?uid=not.in.('+inList+')',{
       method:'DELETE',headers:sbHeaders()
-    });
+    }).then(function(r){if(!r.ok)throw new Error('cleanup vessels HTTP '+r.status);});
   })
   .then(function(){
+    // ШАГ 3: doc_state — upsert по key, затем удаление снятых чекбоксов.
     var stateRows=Object.keys(S).filter(function(k){return S[k];}).map(function(k){return{key:k,value:true};});
-    if(!stateRows.length)return Promise.resolve();
-    return fetch(SB_URL+'/rest/v1/doc_state',{
-      method:'POST',
-      headers:sbHeaders(),
-      body:JSON.stringify(stateRows)
+    var keys=stateRows.map(function(r){return r.key;});
+    var dsUpsert=Object.assign({},sbHeaders(),{'Prefer':'resolution=merge-duplicates'});
+    return (stateRows.length
+      ? fetch(SB_URL+'/rest/v1/doc_state?on_conflict=key',{
+          method:'POST',headers:dsUpsert,body:JSON.stringify(stateRows)
+        }).then(function(r){if(!r.ok)throw new Error('upsert doc_state HTTP '+r.status);})
+      : Promise.resolve()
+    ).then(function(){
+      // удаляем снятые галочки (ключей которых больше нет среди активных)
+      if(!keys.length){
+        // активных галочек нет — чистим doc_state целиком (это безопасно, vessels не трогаем)
+        return fetch(SB_URL+'/rest/v1/doc_state?key=neq.XXXXNOTEXIST',{method:'DELETE',headers:sbHeaders()});
+      }
+      var inKeys=keys.map(function(k){return '"'+k.replace(/"/g,'')+'"';}).join(',');
+      return fetch(SB_URL+'/rest/v1/doc_state?key=not.in.('+inKeys+')',{method:'DELETE',headers:sbHeaders()});
     });
   })
   .then(function(){
