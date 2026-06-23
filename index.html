@@ -434,6 +434,9 @@ var FMAP_COL2={'груз':true,'кол-во груза':true,'причал':true
 var CF=[{k:'arr',l:'ARR',dt:1},{k:'dep',l:'DEP',dt:1},{k:'berth',l:'Berth →',tx:1},{k:'cargo',l:'Cargo'},{k:'cargoqty',l:'Cargo qty'},{k:'type',l:'Тип судна'},{k:'flag',l:'Флаг'},{k:'class',l:'Класс'},{k:'portreg',l:'Порт регистрации'},{k:'imo',l:'IMO →'},{k:'cs',l:'Call Sign'},{k:'year',l:'Built'},{k:'dw',l:'DW'},{k:'loa',l:'LOA'},{k:'lbp',l:'LBP'},{k:'boa',l:'BOA'},{k:'dmd',l:'Dmd'},{k:'tsum',l:'T sum'},{k:'owner',l:'Судовладелец',f:1},{k:'holds',l:'Трюмов/крыш.'},{k:'volume',l:'Объём'},{k:'mt',l:'MarineTraffic',f:1,lnk:1}];
 var V=[],S={},EX={},COLLAPSED={};
 var cloudQueue=null,cloudRetry=0;
+// Защита от затирания облака: true только после успешной загрузки реальных данных
+// (из Supabase или localStorage). Пока false — doSaveCloud НЕ трогает БД.
+var cloudReady=false;
 var etaEditRow=-1;
 
 var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="rgba(34,197,94,0.15)" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
@@ -507,6 +510,20 @@ function sbHeaders(){
 }
 
 function doSaveCloud(onDone){
+  // ЗАЩИТА 1: не сохраняем, пока реальные данные не загружены.
+  // Иначе дефолтный/пустой набор затрёт настоящую базу.
+  if(!cloudReady){
+    console.warn('doSaveCloud: пропущено — данные ещё не загружены (cloudReady=false)');
+    if(onDone)onDone(false);
+    return;
+  }
+  // ЗАЩИТА 2: никогда не пишем в облако пустой массив через delete+insert.
+  // Удаление последнего судна вручную обрабатывается отдельно (см. removeVessel).
+  if(!V||V.length===0){
+    console.warn('doSaveCloud: пропущено — пустой массив судов');
+    if(onDone)onDone(false);
+    return;
+  }
   setSyncDot('busy');
 
   var vessels=V.map(function(v,i){return toSbRow(v,i);});
@@ -584,7 +601,7 @@ function sbLoad(cb){
       cb({vessels:clean,state:state,ts:Date.now()});
     });
   })
-  .catch(function(e){console.error('sbLoad error:',e);cb(null);});
+  .catch(function(e){console.error('sbLoad error:',e);cb(null,e||new Error('network'));});
 }
 
 function doLoad(){
@@ -595,24 +612,38 @@ function doLoad(){
       var d=JSON.parse(raw);
       if(d.vessels&&d.vessels.length>0){
         V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-        S=d.state||{};doRender();doLoadCloud(false);return;
+        S=d.state||{};
+        cloudReady=true; // localStorage содержит реальные данные — сохранять безопасно
+        doRender();doLoadCloud(false);return;
       }
     }catch(e){}
   }
   setSyncDot('busy');
-  sbLoad(function(d){
+  sbLoad(function(d,err){
     if(d&&d.vessels&&d.vessels.length>0){
+      // База есть и не пустая — нормальная загрузка
       V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-      S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
-    }else{doLoadInitial();}
+      S=d.state||{};cloudReady=true;doSaveLoc();doRender();setSyncDot('ok');
+    }else if(err){
+      // СЕТЬ УПАЛА / ошибка БД — НЕ показываем дефолт и НЕ трогаем облако.
+      // cloudReady остаётся false, поэтому случайное сохранение не сотрёт базу.
+      setSyncDot('err');
+      doToast('⚠️ Не удалось загрузить данные из облака. Не редактируйте — данные не загружены.',6000);
+    }else{
+      // База реально пустая (первый запуск) — показываем дефолт ЛОКАЛЬНО.
+      doLoadInitial();
+    }
   });
 }
 
 function doLoadCloud(showToast){
-  sbLoad(function(d){
-    if(!d||!d.vessels)return;
+  sbLoad(function(d,err){
+    if(!d||!d.vessels){
+      if(err)console.warn('doLoadCloud: ошибка сети, локальные данные сохранены');
+      return;
+    }
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-    S=d.state||{};doSaveLoc();doRender();
+    S=d.state||{};cloudReady=true;doSaveLoc();doRender();
     if(showToast!==false)doToast('🔄 Данные синхронизированы');
     setSyncDot('ok');
   });
@@ -620,10 +651,10 @@ function doLoadCloud(showToast){
 
 function doManualRefresh(){
   setSyncDot('busy');
-  sbLoad(function(d){
+  sbLoad(function(d,err){
     if(!d||!d.vessels){setSyncDot('err');doToast('⚠️ Не удалось обновить',4000);return;}
     V=d.vessels.map(function(v){return Object.assign(newV(),v);});
-    S=d.state||{};doSaveLoc();doRender();setSyncDot('ok');
+    S=d.state||{};cloudReady=true;doSaveLoc();doRender();setSyncDot('ok');
     doToast('✅ Обновлено из Supabase');
   });
 }
@@ -647,7 +678,11 @@ function doLoadInitial(){
   {name:"DR SARKAS",imo:"9222558",type:"BULK CARRIER",flag:"BARBADOS",class:"NK",portreg:"BRIDGETOWN",cs:"8PYO8",dw:"28290",grt:"17859",nrt:"9828",loa:"171.93",lbp:"165.28",boa:"27.00",dmd:"13.60",tsum:"9.55",owner:"SARKAS SHIPHOLDING LTD",holds:"5",volume:"38232.05",year:"2000",arr:"2026-05-17",dep:"2026-05-19",berth:"",cargo:"",cargoqty:"",etaswa:"",etaswatime:"",addedDate:"19.05.2026",mmsi:""}
   ].map(function(v){return Object.assign(newV(),v);});
   S={"LUGANO|||19.05.2026|||Notice":true,"LUGANO|||19.05.2026|||ЄАІС":true,"LUGANO|||19.05.2026|||ANNEX":true,"LUGANO|||19.05.2026|||Harbor Master":true,"LUGANO|||19.05.2026|||СКО":true,"LUGANO|||19.05.2026|||ISPS":true,"LUGANO|||19.05.2026|||Port Clearance":true,"LUGANO|||19.05.2026|||DATA FOR DOCS":true,"LUGANO|||19.05.2026|||Pre-stowage plan":true,"LUGANO|||19.05.2026|||Terminal Inquiry":true,"LUGANO|||19.05.2026|||XL":true,"DR SARKAS|||19.05.2026|||Notice":true,"DR SARKAS|||19.05.2026|||ЄАІС":true,"DR SARKAS|||19.05.2026|||ANNEX":true,"DR SARKAS|||19.05.2026|||Harbor Master":true,"DR SARKAS|||19.05.2026|||СКО":true,"DR SARKAS|||19.05.2026|||ISPS":true,"DR SARKAS|||19.05.2026|||Port Clearance":true,"DR SARKAS|||19.05.2026|||DATA FOR DOCS":true,"DR SARKAS|||19.05.2026|||Pre-stowage plan":true,"DR SARKAS|||19.05.2026|||Terminal Inquiry":true,"DR SARKAS|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||XL":true,"SEARENA|||19.05.2026|||Terminal Inquiry":true,"SEARENA|||19.05.2026|||Pre-stowage plan":true,"SEARENA|||19.05.2026|||DATA FOR DOCS":true,"SEARENA|||19.05.2026|||Port Clearance":true,"SEARENA|||19.05.2026|||ISPS":true,"SEARENA|||19.05.2026|||СКО":true,"SEARENA|||19.05.2026|||Harbor Master":true,"SEARENA|||19.05.2026|||ANNEX":true,"SEARENA|||19.05.2026|||ЄАІС":true,"SEARENA|||19.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||Notice":true,"A.M.K EVANDER|||20.05.2026|||ЄАІС":true,"GOLDEN EMAN|||20.05.2026|||Notice":true,"GOLDEN EMAN|||20.05.2026|||ЄАІС":true,"GOLDEN EMAN|||20.05.2026|||ANNEX":true,"GOLDEN EMAN|||20.05.2026|||Harbor Master":true,"GOLDEN EMAN|||20.05.2026|||СКО":true,"GOLDEN EMAN|||20.05.2026|||ISPS":true,"GOLDEN EMAN|||20.05.2026|||Port Clearance":true,"GOLDEN EMAN|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN EMAN|||20.05.2026|||Pre-stowage plan":true,"GOLDEN EMAN|||20.05.2026|||Terminal Inquiry":true,"GOLDEN EMAN|||20.05.2026|||XL":true,"RAFINA|||20.05.2026|||Notice":true,"RAFINA|||20.05.2026|||ЄАІС":true,"RAFINA|||20.05.2026|||ANNEX":true,"RAFINA|||20.05.2026|||Harbor Master":true,"RAFINA|||20.05.2026|||СКО":true,"RAFINA|||20.05.2026|||ISPS":true,"RAFINA|||20.05.2026|||Port Clearance":true,"RAFINA|||20.05.2026|||DATA FOR DOCS":true,"RAFINA|||20.05.2026|||Pre-stowage plan":true,"RAFINA|||20.05.2026|||Terminal Inquiry":true,"RAFINA|||20.05.2026|||XL":true,"CHARLES|||20.05.2026|||Notice":true,"CHARLES|||20.05.2026|||ЄАІС":true,"CHARLES|||20.05.2026|||ANNEX":true,"CHARLES|||20.05.2026|||Harbor Master":true,"CHARLES|||20.05.2026|||СКО":true,"CHARLES|||20.05.2026|||ISPS":true,"CHARLES|||20.05.2026|||Port Clearance":true,"CHARLES|||20.05.2026|||DATA FOR DOCS":true,"CHARLES|||20.05.2026|||Pre-stowage plan":true,"CHARLES|||20.05.2026|||Terminal Inquiry":true,"CHARLES|||20.05.2026|||XL":true,"GOLDEN NOUR|||20.05.2026|||Notice":true,"GOLDEN NOUR|||20.05.2026|||ЄАІС":true,"GOLDEN NOUR|||20.05.2026|||ANNEX":true,"GOLDEN NOUR|||20.05.2026|||Harbor Master":true,"GOLDEN NOUR|||20.05.2026|||СКО":true,"GOLDEN NOUR|||20.05.2026|||ISPS":true,"GOLDEN NOUR|||20.05.2026|||Port Clearance":true,"GOLDEN NOUR|||20.05.2026|||DATA FOR DOCS":true,"GOLDEN NOUR|||20.05.2026|||Pre-stowage plan":true,"GOLDEN NOUR|||20.05.2026|||Terminal Inquiry":true,"GOLDEN NOUR|||20.05.2026|||XL":true,"LADY MONICA|||20.05.2026|||Notice":true,"LADY MONICA|||20.05.2026|||ЄАІС":true,"LADY MONICA|||20.05.2026|||ANNEX":true,"LADY MONICA|||20.05.2026|||Harbor Master":true,"LADY MONICA|||20.05.2026|||СКО":true,"LADY MONICA|||20.05.2026|||ISPS":true,"LADY MONICA|||20.05.2026|||Port Clearance":true,"LADY MONICA|||20.05.2026|||DATA FOR DOCS":true,"LADY MONICA|||20.05.2026|||Pre-stowage plan":true,"LADY MONICA|||20.05.2026|||Terminal Inquiry":true,"LADY MONICA|||20.05.2026|||XL":true,"PELIKAN|||20.05.2026|||Notice":true,"PELIKAN|||20.05.2026|||ЄАІС":true,"PELIKAN|||20.05.2026|||ANNEX":true,"PELIKAN|||20.05.2026|||Harbor Master":true,"PELIKAN|||20.05.2026|||СКО":true,"PELIKAN|||20.05.2026|||ISPS":true,"PELIKAN|||20.05.2026|||Port Clearance":true,"PELIKAN|||20.05.2026|||DATA FOR DOCS":true,"PELIKAN|||20.05.2026|||Pre-stowage plan":true,"PELIKAN|||20.05.2026|||Terminal Inquiry":true,"PELIKAN|||20.05.2026|||XL":true,"PUNKT|||21.05.2026|||Notice":true,"PUNKT|||21.05.2026|||ЄАІС":true,"PUNKT|||21.05.2026|||ANNEX":true,"PUNKT|||21.05.2026|||Harbor Master":true,"PUNKT|||21.05.2026|||СКО":true,"PUNKT|||21.05.2026|||ISPS":true,"PUNKT|||21.05.2026|||Port Clearance":true,"PUNKT|||21.05.2026|||Pre-stowage plan":true,"PUNKT|||21.05.2026|||Terminal Inquiry":true,"PUNKT|||21.05.2026|||XL":true,"EVANGELISTRIA|||21.05.2026|||Notice":true,"EVANGELISTRIA|||21.05.2026|||ЄАІС":true,"A.M.K EVANDER|||20.05.2026|||ANNEX":true,"A.M.K EVANDER|||20.05.2026|||Harbor Master":true};
-  doSaveLoc();doRender();doSaveCloud();
+  doSaveLoc();doRender();
+  // НЕ вызываем doSaveCloud() и НЕ ставим cloudReady=true!
+  // Дефолтные данные — только локальный показ. Они НИКОГДА не должны
+  // автоматически затирать настоящую базу в Supabase.
+  doToast('⚠️ Показаны стартовые данные. Облако НЕ перезаписано.',5000);
 }
 
 function doExportJSON(){
@@ -677,7 +712,7 @@ function doImport(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
   r.onload=function(le){
-    try{var d=JSON.parse(le.target.result);if(!d.vessels)throw new Error('нет vessels');if(!confirm('Импортировать '+d.vessels.length+' судов?'))return;V=d.vessels.map(function(v){return Object.assign(newV(),v);});S=d.state||{};doSave();doRender();doToast('✓ '+V.length+' судов');}catch(ex){doToast('Ошибка: '+ex.message);}
+    try{var d=JSON.parse(le.target.result);if(!d.vessels)throw new Error('нет vessels');if(!confirm('Импортировать '+d.vessels.length+' судов?'))return;V=d.vessels.map(function(v){return Object.assign(newV(),v);});S=d.state||{};cloudReady=true;doSave();doRender();doToast('✓ '+V.length+' судов');}catch(ex){doToast('Ошибка: '+ex.message);}
     e.target.value='';
   };
   r.readAsText(f,'UTF-8');
