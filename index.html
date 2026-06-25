@@ -17,16 +17,16 @@
    long sessions; all class names / JS hooks preserved.
    ============================================================ */
 :root{
-  --paper:#eceef1; --card:#fbfcfd; --card-sub:#f3f5f7;
-  --ink:#1b2a3a; --ink-soft:#5a6b7d; --ink-faint:#8a98a8; --ink-ghost:#aab4c0;
-  --line:#dde2e8; --line-strong:#cbd3dc; --line-soft:#e6eaee;
-  --harbor:#1c5d7c; --harbor-bright:#2b7ba3; --harbor-wash:#e6eef3;
-  --berth-tx:#1c5d7c; --berth-bg:#e3eef4; --berth-bo:#bcd2e0;
-  --anch-tx:#8a5a1e; --anch-bg:#f4ead7; --anch-bo:#e2cfa8;
-  --sail-tx:#2f6f4d; --sail-bg:#e2efe7; --sail-bo:#bcd9c8;
-  --danger:#c0392b; --danger-bg:#fbeceb;
-  --shadow-sm:0 1px 2px rgba(27,42,58,.06);
-  --shadow-md:0 4px 14px rgba(27,42,58,.10);
+  --paper:#e7eaef; --card:#ffffff; --card-sub:#eef1f5;
+  --ink:#142436; --ink-soft:#4d6276; --ink-faint:#7c8ca0; --ink-ghost:#a3b0bf;
+  --line:#d2dae3; --line-strong:#b9c4d0; --line-soft:#dfe5ec;
+  --harbor:#0f6896; --harbor-bright:#1488c0; --harbor-wash:#dcebf6;
+  --berth-tx:#0f6896; --berth-bg:#d6ebf7; --berth-bo:#9fcae5;
+  --anch-tx:#9a5d12; --anch-bg:#fbeccb; --anch-bo:#e9c987;
+  --sail-tx:#1f7a4d; --sail-bg:#d6f0e0; --sail-bo:#a3d8bb;
+  --danger:#d23b2a; --danger-bg:#fbe7e4;
+  --shadow-sm:0 1px 2px rgba(20,36,54,.08);
+  --shadow-md:0 6px 18px rgba(20,36,54,.13);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;background:var(--paper);color:var(--ink);position:relative}
@@ -230,15 +230,15 @@ td.xc{width:32px;min-width:32px;padding:0;text-align:center;vertical-align:middl
       <div style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <!-- Main large sail -->
-          <path d="M52 15 C52 15 52 70 52 70 C52 70 20 55 28 30 C33 18 52 15 52 15 Z" fill="#1c5d7c"/>
+          <path d="M52 15 C52 15 52 70 52 70 C52 70 20 55 28 30 C33 18 52 15 52 15 Z" fill="#0f6896"/>
           <!-- Second smaller sail -->
-          <path d="M56 28 C56 28 56 68 56 68 C56 68 78 55 72 38 C68 28 56 28 56 28 Z" fill="#1c5d7c"/>
+          <path d="M56 28 C56 28 56 68 56 68 C56 68 78 55 72 38 C68 28 56 28 56 28 Z" fill="#0f6896"/>
           <!-- Hull -->
-          <path d="M20 72 Q35 80 52 79 Q69 80 82 72 Q75 85 52 86 Q30 85 20 72 Z" fill="#1c5d7c"/>
+          <path d="M20 72 Q35 80 52 79 Q69 80 82 72 Q75 85 52 86 Q30 85 20 72 Z" fill="#0f6896"/>
           <!-- Wave left -->
-          <path d="M10 80 Q18 75 26 80 Q20 88 10 80 Z" fill="#2b7ba3" opacity="0.55"/>
+          <path d="M10 80 Q18 75 26 80 Q20 88 10 80 Z" fill="#1488c0" opacity="0.6"/>
           <!-- Wave right -->
-          <path d="M76 80 Q84 75 92 80 Q86 88 76 80 Z" fill="#2b7ba3" opacity="0.55"/>
+          <path d="M76 80 Q84 75 92 80 Q86 88 76 80 Z" fill="#1488c0" opacity="0.6"/>
         </svg>
       </div>
       <div><h1>AGENCY PORTAL</h1><p>Port Agency Document Tracker</p></div>
@@ -420,18 +420,18 @@ var DOCS=['Notice','ЄАІС','ANNEX','Harbor Master','СКО','ISPS','Port Clea
 var KEY='vd1';
 var GSURL='https://script.google.com/macros/s/AKfycbyibBvsuJKLjooLbpd9V6-6EgpZqgolGzPV7bWEhHL3iMdv0TWopvkdQkOD9GvUURzthg/exec';
 var MC=[
-  {bg:'#e6edf2',  bo:'#5f7d93', lb:'Январь'},
-  {bg:'#e7eef1',  bo:'#6b8794', lb:'Февраль'},
-  {bg:'#e9eee8',  bo:'#6f8a63', lb:'Март'},
-  {bg:'#eaefe6',  bo:'#728d5d', lb:'Апрель'},
-  {bg:'#ecefe5',  bo:'#7c9056', lb:'Май'},
-  {bg:'#eef0e4',  bo:'#8a9152', lb:'Июнь'},
-  {bg:'#f1efe2',  bo:'#9a8e4c', lb:'Июль'},
-  {bg:'#f2ece1',  bo:'#a8824a', lb:'Август'},
-  {bg:'#f1ebe4',  bo:'#a87a52', lb:'Сентябрь'},
-  {bg:'#efe8e6',  bo:'#a06a5e', lb:'Октябрь'},
-  {bg:'#e9e6ec',  bo:'#7e6f93', lb:'Ноябрь'},
-  {bg:'#e6e9ee',  bo:'#677b97', lb:'Декабрь'}
+  {bg:'#dde8f3',  bo:'#3f6f96', lb:'Январь'},
+  {bg:'#dde9f0',  bo:'#4a7c94', lb:'Февраль'},
+  {bg:'#e0eed9',  bo:'#5a8f4a', lb:'Март'},
+  {bg:'#e2f0d8',  bo:'#5f9544', lb:'Апрель'},
+  {bg:'#e7f1d4',  bo:'#6f9c3c', lb:'Май'},
+  {bg:'#eef1d2',  bo:'#869536', lb:'Июнь'},
+  {bg:'#f4eecd',  bo:'#a8932f', lb:'Июль'},
+  {bg:'#f7e9c8',  bo:'#bc842f', lb:'Август'},
+  {bg:'#f6e6d4',  bo:'#bd763c', lb:'Сентябрь'},
+  {bg:'#f3ddd6',  bo:'#b85844', lb:'Октябрь'},
+  {bg:'#ebe2f1',  bo:'#8060a0', lb:'Ноябрь'},
+  {bg:'#dee4ef',  bo:'#52709c', lb:'Декабрь'}
 ];
 var FMAP={'название судна':'name','тип судна':'type','флаг':'flag','класс':'class','порт регистрации':'portreg','imo →':'imo','imo no':'imo','imo':'imo','call sign':'cs','dw':'dw','grt':'grt','nrt':'nrt','loa':'loa','lbp':'lbp','boa':'boa','dmd:':'dmd','dmd':'dmd','t sum':'tsum','судовладелец':'owner','кол-во трюмов / крыш.':'holds','кол-во трюмів/крш.':'holds','кол-во трюмов/крыш.':'holds','кол-во трюмов':'holds','объем':'volume','объём':'volume','год постройки':'year','mmsi':'mmsi','груз':'cargo','кол-во груза':'cargoqty','причал':'berth'};
 var FMAP_COL2={'груз':true,'кол-во груза':true,'причал':true};
@@ -443,7 +443,7 @@ var cloudQueue=null,cloudRetry=0;
 var cloudReady=false;
 var etaEditRow=-1;
 
-var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#e2efe7" stroke="#7fb295" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#2f6f4d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+var SVG_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#d6f0e0" stroke="#52bd86" stroke-width="1.5"/><polyline points="7.5,12 10.5,15 16.5,9" stroke="#1f7a4d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 var SVG_CROSS='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#f2f4f6" stroke="#cbd3dc" stroke-width="1.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" stroke="#aab4c0" stroke-width="2.2" stroke-linecap="round"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5" stroke="#aab4c0" stroke-width="2.2" stroke-linecap="round"/></svg>';
 var SVG_DEL='<svg width="8" height="8" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>';
 var SVG_UPL='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
@@ -780,10 +780,10 @@ function renderVesselRow(v,isSailed,noTr){
 
   var cellBg,cellBo,vcBg,vcBo;
   if(isSailed&&mc){cellBg=mc.bg;cellBo=mc.bo;vcBg=mc.bg;vcBo=mc.bo;}
-  else{cellBg='#fbfcfd';cellBo='#e6eaee';vcBg='#fbfcfd';vcBo='#e6eaee';}
+  else{cellBg='#ffffff';cellBo='#dfe5ec';vcBg='#ffffff';vcBo='#dfe5ec';}
 
   var allChecked=!isSailed&&DOCS.every(function(d){return gs(ek,d);});
-  var tickBg=allChecked?'#e2efe7':cellBg,tickBo=allChecked?'#bcd9c8':cellBo;
+  var tickBg=allChecked?'#d6f0e0':cellBg,tickBo=allChecked?'#a3d8bb':cellBo;
 
   var h=noTr?'':'<tr>';
 
@@ -794,12 +794,12 @@ function renderVesselRow(v,isSailed,noTr){
     h+='<span class="vs '+s.c+'" data-ek="'+ec(ek)+'">';
     h+=ec(s.t);
     if(isSailed){
-      var SVG_PLUS='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#e6eef3" stroke="#9cbed0" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#1c5d7c" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#1c5d7c" stroke-width="2.2" stroke-linecap="round"/></svg>';
+      var SVG_PLUS='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#daecf6" stroke="#7cb4dc" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#0f6896" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#0f6896" stroke-width="2.2" stroke-linecap="round"/></svg>';
       h+=' <button class="sail-plus" onclick="doOpenSailModal('+ri+')" title="Sailing Data">'+SVG_PLUS+'</button>';
     }
     h+='</span>';
   }else if(isSailed){
-    var SVG_PLUS2='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#e6eef3" stroke="#9cbed0" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#1c5d7c" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#1c5d7c" stroke-width="2.2" stroke-linecap="round"/></svg>';
+    var SVG_PLUS2='<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#daecf6" stroke="#7cb4dc" stroke-width="1.5"/><line x1="12" y1="7" x2="12" y2="17" stroke="#0f6896" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="12" x2="17" y2="12" stroke="#0f6896" stroke-width="2.2" stroke-linecap="round"/></svg>';
     h+='<button class="sail-plus" onclick="doOpenSailModal('+ri+')" title="Sailing Data">'+SVG_PLUS2+'</button>';
   }
   h+='</div></div>';
@@ -817,7 +817,7 @@ function renderVesselRow(v,isSailed,noTr){
 
   // MA/OD ячейка
   var maodVal=v.maod||'';
-  var maodColor=maodVal==='MA'?'#1c5d7c':maodVal==='OD'?'#2f6f4d':'#8a98a8';
+  var maodColor=maodVal==='MA'?'#0f6896':maodVal==='OD'?'#1f7a4d':'#7c8ca0';
   h+='<td style="background:'+cellBg+';border:1px solid '+cellBo+';width:50px;min-width:50px;max-width:50px;padding:0;text-align:center;vertical-align:middle;position:relative">';
   h+='<div class="maod-cell" onclick="doMaodClick(event,'+ri+')" style="height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:700;color:'+maodColor+'">'+(maodVal||'—')+'</div>';
   h+='</td>';
@@ -913,9 +913,9 @@ function doRender(){
     sailed.sort(function(a,b){return b.dep>a.dep?1:b.dep<a.dep?-1:0;});
 
     var sections=[
-      {key:'sec_alongside',label:'Alongside berth', list:alongside,  bg:'#e3eef4',bo:'#1c5d7c',tc:'#1c5d7c'},
-      {key:'sec_sulina',   label:'Sulina anchorage',list:sulina,     bg:'#f4ead7',bo:'#b88a3e',tc:'#8a5a1e'},
-      {key:'sec_forth',    label:'Forthcoming',     list:forthcoming,bg:'#eef1f4',bo:'#9aa6b2',tc:'#5a6b7d'}
+      {key:'sec_alongside',label:'Alongside berth', list:alongside,  bg:'#d6ebf7',bo:'#0f6896',tc:'#0f6896'},
+      {key:'sec_sulina',   label:'Sulina anchorage',list:sulina,     bg:'#fbeccb',bo:'#d49a36',tc:'#9a5d12'},
+      {key:'sec_forth',    label:'Forthcoming',     list:forthcoming,bg:'#e6ebf1',bo:'#7d8da3',tc:'#4d6276'}
     ];
 
     sections.forEach(function(sec){
@@ -997,7 +997,7 @@ function doMaodClick(e,i){
   ['MA','OD','—'].forEach(function(opt){
     var btn=document.createElement('div');
     btn.textContent=opt;
-    btn.style.cssText='padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;color:'+(opt==='MA'?'#1c5d7c':opt==='OD'?'#2f6f4d':'#8a98a8');
+    btn.style.cssText='padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;color:'+(opt==='MA'?'#0f6896':opt==='OD'?'#1f7a4d':'#7c8ca0');
     btn.onmouseenter=function(){this.style.background='#f7f9fe';}
     btn.onmouseleave=function(){this.style.background='';}
     btn.onclick=function(ev){
@@ -1021,7 +1021,7 @@ function doSailCellEdit(td,i,field){
   if(td.querySelector('input'))return;
   var val=V[i][field]||'';
   var w=Math.max(td.offsetWidth,90);
-  td.innerHTML='<input type="text" value="'+ec(val)+'" style="width:100%;box-sizing:border-box;padding:3px 7px;font-size:10px;font-weight:600;color:#1b2a3a;border:none;outline:2px solid #1c5d7c;background:#e6eef3;text-align:center;min-width:'+w+'px" />';
+  td.innerHTML='<input type="text" value="'+ec(val)+'" style="width:100%;box-sizing:border-box;padding:3px 7px;font-size:10px;font-weight:600;color:#142436;border:none;outline:2px solid #0f6896;background:#daecf6;text-align:center;min-width:'+w+'px" />';
   var inp=td.querySelector('input');
   inp.focus();inp.select();
   function save(){
@@ -1150,8 +1150,8 @@ function doTick(ve,de){
               if(v2){
                 var ek2=v2.name+'|||'+v2.addedDate;
                 var allChecked=DOCS.every(function(dd){return gs(ek2,dd);});
-                var bg=allChecked?'#e2efe7':'#fbfcfd';
-                var bo=allChecked?'#bcd9c8':'#e6eaee';
+                var bg=allChecked?'#d6f0e0':'#ffffff';
+                var bo=allChecked?'#a3d8bb':'#dfe5ec';
                 row.querySelectorAll('td.cc,td.xc').forEach(function(c){
                   c.style.background=bg;
                   c.style.borderColor=bo;
